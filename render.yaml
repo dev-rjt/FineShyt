@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: verdant-green-insights
+    runtime: python
+    plan: free
+    buildCommand: pip install -r product_app/requirements.txt -r product_app/requirements-app.txt
+    startCommand: bash product_app/start_hosted.sh
+    healthCheckPath: /_stcore/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.7
+      - key: BANK_DEMO_ID
+        value: bank_manager
+      - key: BANK_DEMO_PASSWORD
+        value: GreenBank@2026
+      - key: CUSTOMER_DEMO_ID
+        value: C12558
+      - key: CUSTOMER_DEMO_PASSWORD
+        value: GreenCustomer@2026
+      - key: APP_SESSION_SECRET
+        generateValue: true
+      - key: API_BASE_URL
+        value: http://127.0.0.1:8000
+      - key: API_PORT
+        value: 8000

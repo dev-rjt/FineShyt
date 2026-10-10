@@ -21,7 +21,7 @@ PRODUCT_COLOURS = {
     "EV Finance": "#006A4D", "Green Home Loan": "#2B8C6B",
     "Solar Finance": "#E8A23A", "Paperless Banking": "#5E6AD2",
 }
-BANK_PAGES = ["Executive overview", "Opportunity desk", "Impact planner", "Model governance", "Risk & controls"]
+BANK_PAGES = ["Executive overview", "Customer directory", "Opportunity desk", "Impact planner", "Model governance", "Risk & controls"]
 CUSTOMER_PAGES = ["My green insights"]
 
 
@@ -118,6 +118,31 @@ def pretty_value(value) -> str:
     if isinstance(value, float):
         return f"{value:.0%}" if 0 <= value <= 1 else f"{value:,.2f}"
     return str(value)
+
+
+def friendly_method(method: str) -> str:
+    """Translate calculation notation into judge- and customer-ready language."""
+    if not method:
+        return "The estimate compares the recorded baseline with a documented 12-month scenario."
+    if "car_petrol" in method:
+        return ("We compare emissions from driving the recorded annual distance in the current petrol car "
+                "with the electricity an EV would use for the same distance, using the approved grid factor.")
+    if "car_diesel" in method:
+        return ("We compare emissions from driving the recorded annual distance in the current diesel car "
+                "with the electricity an EV would use for the same distance, using the approved grid factor.")
+    if "car_hybrid" in method:
+        return ("We compare emissions from driving the recorded annual distance in the current hybrid car "
+                "with the electricity an EV would use for the same distance, using the approved grid factor.")
+    if "metered kWh" in method:
+        return ("We apply the documented home-efficiency reductions to the recorded annual gas and electricity "
+                "use, then compare the resulting footprint with the current baseline.")
+    if "PV generation" in method:
+        return ("We estimate annual solar generation from the modelled system size and compare the displaced "
+                "grid electricity with the customer's current electricity footprint.")
+    if "paper statements" in method:
+        return ("We multiply the annual paper statements that could be avoided by the documented per-statement "
+                "factor. Digital adoption is reported separately from carbon impact.")
+    return method.replace(" x ", " × ")
 
 
 def login_screen():
@@ -314,8 +339,11 @@ if page == "My green insights":
                     metrics[1].metric("Current baseline", f"{impact['baseline_kg_co2e']:,.0f} kg/year")
                     metrics[2].metric("Modelled scenario", f"{impact['scenario_kg_co2e']:,.0f} kg/year")
                 with st.expander("How this estimate was calculated"):
-                    st.write(impact["method"])
-                    st.write("Assumptions:", impact.get("assumptions", []))
+                    st.markdown(f"**Method**  \n{friendly_method(impact.get('method', ''))}")
+                    assumptions = impact.get("assumptions", [])
+                    if assumptions:
+                        st.markdown("**Assumptions**")
+                        st.markdown("  \n".join(f"- {item.capitalize()}" for item in assumptions))
                     st.caption("This is a modelled 12-month estimate, not a measured reduction.")
             elif impact.get("status") == "INSUFFICIENT_DATA":
                 st.warning("We need more information before we can estimate the potential impact.")
@@ -448,7 +476,70 @@ elif page == "Executive overview":
         right.write("")
         right.button("Open customer →", type="primary", on_click=go_customer, args=(sel,), use_container_width=True)
 
-# ----------------------------------------------------------------------------- 2. customer view
+# ----------------------------------------------------------------------------- 2. complete customer directory
+elif page == "Customer directory":
+    hero("Customer directory", "Every customer in one governed portfolio view.",
+         "Search and review all 5,000 synthetic customer profiles, their current opportunity count and their leading green conversation.",
+         ["5,000 customer records", "Searchable portfolio", "Relationship-manager drill-down"])
+
+    recommended = R[R.recommend].copy()
+    opportunity_summary = (recommended.groupby("customer_id")
+                            .agg(relevant_opportunities=("opportunity", "size"),
+                                 highest_interest=("propensity", "max"),
+                                 potential_kg_co2e=("avoided_kg_co2e_per_year", "sum"))
+                            .reset_index())
+    leading = (recommended.sort_values("propensity", ascending=False)
+               .drop_duplicates("customer_id")[["customer_id", "product_name"]]
+               .rename(columns={"product_name": "leading_opportunity"}))
+    directory = C.copy().merge(opportunity_summary, on="customer_id", how="left").merge(leading, on="customer_id", how="left")
+    directory["relevant_opportunities"] = directory.relevant_opportunities.fillna(0).astype(int)
+    directory["leading_opportunity"] = directory.leading_opportunity.fillna("No prioritised opportunity")
+    directory["potential_kg_co2e"] = directory.potential_kg_co2e.fillna(0)
+
+    search_col, region_col, income_col = st.columns([1.25, 1, 1])
+    search = search_col.text_input("Search customer ID", placeholder="For example, C12558")
+    regions = region_col.multiselect("Region", sorted(directory.region.dropna().unique()), placeholder="All regions")
+    incomes = income_col.multiselect("Income band", ["<20k", "20-35k", "35-50k", "50-80k", "80k+"], placeholder="All income bands")
+    visible = directory.copy()
+    if search:
+        visible = visible[visible.customer_id.str.contains(search.strip(), case=False, regex=False)]
+    if regions:
+        visible = visible[visible.region.isin(regions)]
+    if incomes:
+        visible = visible[visible.income_band.isin(incomes)]
+
+    metrics = st.columns(4)
+    metrics[0].metric("Customers in directory", f"{len(directory):,}")
+    metrics[1].metric("Currently displayed", f"{len(visible):,}")
+    metrics[2].metric("With a prioritised opportunity", f"{(directory.relevant_opportunities > 0).sum():,}")
+    metrics[3].metric("Without a current opportunity", f"{(directory.relevant_opportunities == 0).sum():,}")
+
+    st.markdown("### Customer portfolio")
+    st.caption("All records are synthetic. Interest signals support prioritisation and never establish financial eligibility.")
+    customer_table = visible.rename(columns={
+        "customer_id": "Customer ID", "age": "Age", "income_band": "Income band", "postcode": "Postcode",
+        "home_owner": "Home owner", "digital_usage": "Digital engagement", "sustainability_preference": "Sustainability preference",
+        "region": "Region", "relevant_opportunities": "Relevant opportunities", "leading_opportunity": "Leading opportunity",
+        "highest_interest": "Highest interest signal", "potential_kg_co2e": "Potential kg CO₂e/year",
+    })
+    customer_table["Home owner"] = customer_table["Home owner"].map(lambda value: "Yes" if bool(value) else "No")
+    customer_table = customer_table[["Customer ID", "Region", "Postcode", "Age", "Income band", "Home owner",
+                                     "Digital engagement", "Sustainability preference", "Relevant opportunities",
+                                     "Leading opportunity", "Highest interest signal", "Potential kg CO₂e/year"]]
+    st.dataframe(customer_table.style.format({"Digital engagement": "{:.0%}", "Sustainability preference": "{:.0%}",
+                                              "Highest interest signal": "{:.0%}", "Potential kg CO₂e/year": "{:,.1f}"},
+                 na_rep="—"), hide_index=True, width="stretch", height=620)
+
+    if len(visible):
+        open_col, action_col = st.columns([3, 1])
+        selected_customer = open_col.selectbox("Open full opportunity profile", visible.customer_id.tolist(), key="directory_customer")
+        action_col.write("")
+        action_col.button("Open opportunity profile →", type="primary", on_click=go_customer,
+                          args=(selected_customer,), use_container_width=True)
+    else:
+        st.info("No customers match those filters.")
+
+# ----------------------------------------------------------------------------- 3. customer view
 elif page == "Opportunity desk":
     hero("Opportunity desk", "The next best green conversation, with evidence attached.",
          "Review customer relevance, product-rule outcomes and estimated impact in one relationship-manager workspace.",
@@ -501,11 +592,11 @@ elif page == "Opportunity desk":
                     extra = imp.get("energy_saved_kwh") or imp.get("generation_kwh")
                     if extra: q[2].metric("Energy " + ("saved" if "energy_saved_kwh" in imp else "generated"), f"{extra:,.0f} kWh/yr")
                 with st.expander("Method & assumptions"):
-                    st.markdown(f"**Calculation method**  \n{imp['method']}")
+                    st.markdown(f"**Calculation method**  \n{friendly_method(imp.get('method', ''))}")
                     assumptions = imp.get("assumptions", [])
                     if assumptions:
                         st.markdown("**Planning assumptions**")
-                        st.markdown("  \n".join(f"- {item}" for item in assumptions))
+                        st.markdown("  \n".join(f"- {item.capitalize()}" for item in assumptions))
                     st.caption("The estimate uses recorded activity inputs and approved emission factors. Raw payloads remain in the audit layer, not the business interface.")
             elif imp.get("status") == "INSUFFICIENT_DATA":
                 st.warning(f"Not enough data to estimate impact: missing {', '.join(imp['missing_inputs'])}")
@@ -573,10 +664,10 @@ elif page == "Impact planner":
                                 width="stretch")
             else:
                 c[1].metric("Paper statements avoided", imp["paper_statements_avoided"]); c[2].metric("Sheets avoided", imp["paper_sheets_avoided"])
-            st.markdown(f"<div class='business-note'><b>Calculation method:</b> {html.escape(imp['method'])}</div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='business-note'><b>Calculation method:</b> {html.escape(friendly_method(imp.get('method', '')))}</div>", unsafe_allow_html=True)
             if imp.get("assumptions"):
                 with st.expander("Scenario assumptions"):
-                    st.markdown("  \n".join(f"- {item}" for item in imp["assumptions"]))
+                    st.markdown("  \n".join(f"- {item.capitalize()}" for item in imp["assumptions"]))
             st.caption("Planning estimate only. It does not represent a measured customer outcome or a financial-product decision.")
     with st.expander("Portfolio modelling assumptions"):
         assumption_labels = {

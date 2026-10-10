@@ -14,6 +14,10 @@ The launcher creates a local `.env` from `.env.example` on first run. Demo accou
 These accounts are limited to localhost and synthetic data. Change the values before
 any hosted deployment.
 
+For hosting, the repository root contains a Render Blueprint. Its
+`start_hosted.sh` launcher runs the API internally and exposes only Streamlit on
+the platform-assigned port. See the root `README.md` for deployment steps.
+
 The customer account is bound to one synthetic customer and can only open that
 customer's recommendations. The bank account opens the portfolio dashboard,
 customer drill-down, impact lab, model evaluation, and trust centre. This is a
@@ -54,6 +58,7 @@ artifacts:
 The redesigned prototype follows the challenge's complete decision path:
 
 - **Executive overview** — portfolio KPIs, opportunities, separate impact metrics, segments, trends and customer drill-down.
+- **Customer directory** — a searchable, downloadable view of all 5,000 synthetic customers with opportunity summaries and drill-down.
 - **Opportunity desk** — evidence, confidence, estimated impact, methodology, clear action and in-session response memory.
 - **Impact planner** — an inspectable deterministic baseline-vs-scenario calculator with no ML or LLM involvement.
 - **Model governance** — held-out performance, baseline comparisons, feature importance and descriptive subgroup monitoring.
