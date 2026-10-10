@@ -28,3 +28,6 @@ responsible_ai/identity_vault.csv
 .rai-stage-*/
 .identity-*
 _old_setup/
+
+# Generated explanation records and evaluation reports
+data/reports/llm/

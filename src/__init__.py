@@ -1,1 +1,1 @@
-"""Glass-Box Green Insights source package."""
+"""Glass-Box Green Insights components."""

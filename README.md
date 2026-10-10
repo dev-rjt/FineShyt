@@ -24,6 +24,7 @@ documentation is available at <http://127.0.0.1:8000/docs>.
 | `src/engine/` | Deterministic product gate and impact calculations |
 | `responsible_ai/` | Privacy, leakage, bias, schema, scenario and audit controls |
 | `src/api/` | Original API contract implementation and integration reference |
+| `src/llm/` | Grounded local LLM explanations, fact extraction and output verification |
 | `product_app/` | Final authenticated FastAPI + business/customer Streamlit product |
 | `integrations/engine_reference/` | Clean source imported from the independent engine branch |
 
@@ -37,3 +38,8 @@ python3 ml/run_project_dataset.py
 
 All data is synthetic or based on bounded lawful public samples. Propensity is
 not eligibility. Sustainability figures are estimates from deterministic rules.
+
+## Component documentation
+
+- [Responsible AI controls and run instructions](README_RAI.md)
+- [Customer and bank-staff LLM explanations with local Ollama](README_LLM.md)

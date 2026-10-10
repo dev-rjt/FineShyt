@@ -1,0 +1,280 @@
+{
+  "basis": "Synthetic fixture demonstrations, not measured results or complete contract input records",
+  "mode": "template",
+  "cases": [
+    {
+      "scenario": "eligible_ev",
+      "explanation": {
+        "status": "FALLBACK_USED",
+        "headline": "Explore EV Finance",
+        "customer_message": "EV Finance may be worth exploring. This opportunity passed the configured product rules; authorised bank checks still apply. The signals behind this opportunity include high recurring fuel spending; high annual vehicle mileage; an existing petrol or diesel vehicle. Prediction confidence: 0.87 on a zero-to-one scale. Estimated potential avoided emissions: 900 to 1,200 kgCO2e/year, over 1 year. This is a modelled estimate, not a measured or guaranteed saving. Method: current fuel emissions minus estimated EV electricity emissions. Assumptions: Annual mileage remains unchanged after switching vehicles; EV efficiency is represented by a documented range. Documented emissions factors underpin the estimate; see the impact evidence panel. Explore EV options, subject to authorised bank checks. Based on data available as of 2026-08-31.",
+        "manager_message": "Product: EV Finance. Eligibility status: ELIGIBLE. Decision: RECOMMEND. The configured product rules passed; authorised bank checks still apply. Signal HIGH_FUEL_SPEND: High recurring fuel spending. Average monthly fuel spending: 245.5 GBP. Signal HIGH_ANNUAL_MILEAGE: High annual vehicle mileage. Annual mileage: 16,500 miles/year. Signal EXISTING_ICE_VEHICLE: An existing petrol or diesel vehicle. Model take-up propensity: 0.84 on a zero-to-one scale. Prediction confidence: 0.87 on a zero-to-one scale. Propensity describes predicted take-up; confidence is separate. Neither establishes financial eligibility. Estimated potential avoided emissions: 900 to 1,200 kgCO2e/year, over 1 year. Impact is a modelled estimate, not a measured or guaranteed outcome. Method: current fuel emissions minus estimated EV electricity emissions (EV_AVOIDED_EMISSIONS_V1). Assumptions: Annual mileage remains unchanged after switching vehicles; EV efficiency is represented by a documented range. Factor sources: UK_DESNZ_DEFRA (2026). Supporting estimate for current transport emissions: 2,850 kgCO2e/year. Supporting estimate for EV emissions: 1,800 kgCO2e/year. Keep emissions, energy, paper and digital adoption as separate metrics; digital adoption alone is not a carbon saving. Next step: Explore EV options (EXPLORE_EV_OPTIONS). Data cutoff: 2026-08-31.",
+        "verification": {
+          "passed": true,
+          "verified_fields": [
+            "data_cutoff_date",
+            "eligibility.status",
+            "impact.assumptions",
+            "impact.emission_factors",
+            "impact.method_id",
+            "impact.primary_metric",
+            "impact.primary_metric.metric",
+            "impact.status",
+            "impact.supporting_metrics[0]",
+            "impact.supporting_metrics[1]",
+            "impact.time_horizon",
+            "opportunity.product_code",
+            "prediction.confidence",
+            "prediction.propensity",
+            "prediction.reason_codes",
+            "prediction.reason_codes[0].code",
+            "prediction.reason_codes[0].evidence",
+            "prediction.reason_codes[1].code",
+            "prediction.reason_codes[1].evidence",
+            "prediction.reason_codes[2].code",
+            "recommendation.action_code",
+            "recommendation.decision"
+          ],
+          "unsupported_claims": [],
+          "fallback_used": true
+        },
+        "llm": {
+          "provider": null,
+          "model": null,
+          "prompt_version": "grounded_insight_v1.0.0"
+        }
+      }
+    },
+    {
+      "scenario": "ineligible_ev",
+      "explanation": {
+        "status": "FALLBACK_USED",
+        "headline": null,
+        "customer_message": null,
+        "manager_message": "Product: EV Finance. Eligibility status: INELIGIBLE. Decision: DO_NOT_RECOMMEND. The configured product rules did not pass. Do not present this product as an offer. This opportunity is hidden from the customer view. No model reason codes were supplied. Model take-up propensity: 0.91 on a zero-to-one scale. Prediction confidence: 0.89 on a zero-to-one scale. Propensity describes predicted take-up; confidence is separate. Neither establishes financial eligibility. No sustainability impact estimate applies to this opportunity. Failed rule EXISTING_EV_WITHOUT_REPLACEMENT_CASE: An existing EV with no replacement case. No next-step action was supplied. Do not invent an offer. Data cutoff: 2026-08-31.",
+        "verification": {
+          "passed": true,
+          "verified_fields": [
+            "data_cutoff_date",
+            "eligibility.failed_rules[0]",
+            "eligibility.status",
+            "impact.status",
+            "opportunity.product_code",
+            "prediction.confidence",
+            "prediction.propensity",
+            "prediction.reason_codes",
+            "recommendation.action_code",
+            "recommendation.customer_visible",
+            "recommendation.decision"
+          ],
+          "unsupported_claims": [],
+          "fallback_used": true
+        },
+        "llm": {
+          "provider": null,
+          "model": null,
+          "prompt_version": "grounded_insight_v1.0.0"
+        }
+      }
+    },
+    {
+      "scenario": "missing_data_ev",
+      "explanation": {
+        "status": "FALLBACK_USED",
+        "headline": null,
+        "customer_message": null,
+        "manager_message": "Product: EV Finance. Eligibility status: MANUAL_REVIEW. Decision: MANUAL_REVIEW. Eligibility requires human review. Do not present this product as an offer. This opportunity is hidden from the customer view. Signal HIGH_FUEL_SPEND: High recurring fuel spending. Average monthly fuel spending: 245.5 GBP. Signal HIGH_ANNUAL_MILEAGE: High annual vehicle mileage. Annual mileage: 16,500 miles/year. Signal EXISTING_ICE_VEHICLE: An existing petrol or diesel vehicle. Model take-up propensity: 0.84 on a zero-to-one scale. Prediction confidence: 0.87 on a zero-to-one scale. Propensity describes predicted take-up; confidence is separate. Neither establishes financial eligibility. There is insufficient data to estimate sustainability impact. Required eligibility information is missing; consult the structured missing-requirements list. Human review is required before any further action. Next step: Request mileage information (REQUEST_MILEAGE_DATA). Data cutoff: 2026-08-31.",
+        "verification": {
+          "passed": true,
+          "verified_fields": [
+            "audit.human_review_required",
+            "data_cutoff_date",
+            "eligibility.missing_requirements",
+            "eligibility.status",
+            "impact.status",
+            "opportunity.product_code",
+            "prediction.confidence",
+            "prediction.propensity",
+            "prediction.reason_codes[0].code",
+            "prediction.reason_codes[0].evidence",
+            "prediction.reason_codes[1].code",
+            "prediction.reason_codes[1].evidence",
+            "prediction.reason_codes[2].code",
+            "recommendation.action_code",
+            "recommendation.customer_visible",
+            "recommendation.decision"
+          ],
+          "unsupported_claims": [],
+          "fallback_used": true
+        },
+        "llm": {
+          "provider": null,
+          "model": null,
+          "prompt_version": "grounded_insight_v1.0.0"
+        }
+      }
+    },
+    {
+      "scenario": "calculation_error",
+      "explanation": {
+        "status": "FALLBACK_USED",
+        "headline": null,
+        "customer_message": null,
+        "manager_message": "Product: EV Finance. Eligibility status: ELIGIBLE. Decision: DO_NOT_RECOMMEND. The configured product rules passed; authorised bank checks still apply. The recommendation decision blocks an offer despite the product-rule result. This opportunity is hidden from the customer view. Signal HIGH_FUEL_SPEND: High recurring fuel spending. Average monthly fuel spending: 245.5 GBP. Signal HIGH_ANNUAL_MILEAGE: High annual vehicle mileage. Annual mileage: 16,500 miles/year. Signal EXISTING_ICE_VEHICLE: An existing petrol or diesel vehicle. Model take-up propensity: 0.84 on a zero-to-one scale. Prediction confidence: 0.87 on a zero-to-one scale. Propensity describes predicted take-up; confidence is separate. Neither establishes financial eligibility. The impact calculation failed; no impact estimate is available. No next-step action was supplied. Do not invent an offer. Data cutoff: 2026-08-31.",
+        "verification": {
+          "passed": true,
+          "verified_fields": [
+            "data_cutoff_date",
+            "eligibility.status",
+            "impact.status",
+            "opportunity.product_code",
+            "prediction.confidence",
+            "prediction.propensity",
+            "prediction.reason_codes[0].code",
+            "prediction.reason_codes[0].evidence",
+            "prediction.reason_codes[1].code",
+            "prediction.reason_codes[1].evidence",
+            "prediction.reason_codes[2].code",
+            "recommendation.action_code",
+            "recommendation.customer_visible",
+            "recommendation.decision"
+          ],
+          "unsupported_claims": [],
+          "fallback_used": true
+        },
+        "llm": {
+          "provider": null,
+          "model": null,
+          "prompt_version": "grounded_insight_v1.0.0"
+        }
+      }
+    },
+    {
+      "scenario": "manual_review",
+      "explanation": {
+        "status": "FALLBACK_USED",
+        "headline": null,
+        "customer_message": null,
+        "manager_message": "Product: EV Finance. Eligibility status: MANUAL_REVIEW. Decision: MANUAL_REVIEW. Eligibility requires human review. Do not present this product as an offer. This opportunity is hidden from the customer view. Signal HIGH_FUEL_SPEND: High recurring fuel spending. Average monthly fuel spending: 245.5 GBP. Signal HIGH_ANNUAL_MILEAGE: High annual vehicle mileage. Annual mileage: 16,500 miles/year. Signal EXISTING_ICE_VEHICLE: An existing petrol or diesel vehicle. Model take-up propensity: 0.84 on a zero-to-one scale. Prediction confidence: 0.87 on a zero-to-one scale. Propensity describes predicted take-up; confidence is separate. Neither establishes financial eligibility. There is insufficient data to estimate sustainability impact. Required eligibility information is missing; consult the structured missing-requirements list. Human review is required before any further action. Next step: Request mileage information (REQUEST_MILEAGE_DATA). Data cutoff: 2026-08-31.",
+        "verification": {
+          "passed": true,
+          "verified_fields": [
+            "audit.human_review_required",
+            "data_cutoff_date",
+            "eligibility.missing_requirements",
+            "eligibility.status",
+            "impact.status",
+            "opportunity.product_code",
+            "prediction.confidence",
+            "prediction.propensity",
+            "prediction.reason_codes[0].code",
+            "prediction.reason_codes[0].evidence",
+            "prediction.reason_codes[1].code",
+            "prediction.reason_codes[1].evidence",
+            "prediction.reason_codes[2].code",
+            "recommendation.action_code",
+            "recommendation.customer_visible",
+            "recommendation.decision"
+          ],
+          "unsupported_claims": [],
+          "fallback_used": true
+        },
+        "llm": {
+          "provider": null,
+          "model": null,
+          "prompt_version": "grounded_insight_v1.0.0"
+        }
+      }
+    },
+    {
+      "scenario": "green_home_loan_synthetic",
+      "explanation": {
+        "status": "FALLBACK_USED",
+        "headline": "Explore Green Home Loan",
+        "customer_message": "Green Home Loan may be worth exploring. This opportunity passed the configured product rules; authorised bank checks still apply. No reason codes were supplied, so relevance cannot be explained further. Prediction confidence: 0.87 on a zero-to-one scale. There is insufficient data to estimate sustainability impact. No customer action was supplied; contact the bank team for guidance. Based on data available as of 2026-08-31.",
+        "manager_message": "Product: Green Home Loan. Eligibility status: ELIGIBLE. Decision: RECOMMEND. The configured product rules passed; authorised bank checks still apply. No model reason codes were supplied. Model take-up propensity: 0.84 on a zero-to-one scale. Prediction confidence: 0.87 on a zero-to-one scale. Propensity describes predicted take-up; confidence is separate. Neither establishes financial eligibility. There is insufficient data to estimate sustainability impact. No next-step action was supplied. Do not invent an offer. Data cutoff: 2026-08-31.",
+        "verification": {
+          "passed": true,
+          "verified_fields": [
+            "data_cutoff_date",
+            "eligibility.status",
+            "impact.status",
+            "opportunity.product_code",
+            "prediction.confidence",
+            "prediction.propensity",
+            "prediction.reason_codes",
+            "recommendation.action_code",
+            "recommendation.decision"
+          ],
+          "unsupported_claims": [],
+          "fallback_used": true
+        },
+        "llm": {
+          "provider": null,
+          "model": null,
+          "prompt_version": "grounded_insight_v1.0.0"
+        }
+      }
+    },
+    {
+      "scenario": "solar_finance_synthetic",
+      "explanation": {
+        "status": "FALLBACK_USED",
+        "headline": "Explore Solar Finance",
+        "customer_message": "Solar Finance may be worth exploring. This opportunity passed the configured product rules; authorised bank checks still apply. No reason codes were supplied, so relevance cannot be explained further. Prediction confidence: 0.87 on a zero-to-one scale. There is insufficient data to estimate sustainability impact. No customer action was supplied; contact the bank team for guidance. Based on data available as of 2026-08-31.",
+        "manager_message": "Product: Solar Finance. Eligibility status: ELIGIBLE. Decision: RECOMMEND. The configured product rules passed; authorised bank checks still apply. No model reason codes were supplied. Model take-up propensity: 0.84 on a zero-to-one scale. Prediction confidence: 0.87 on a zero-to-one scale. Propensity describes predicted take-up; confidence is separate. Neither establishes financial eligibility. There is insufficient data to estimate sustainability impact. No next-step action was supplied. Do not invent an offer. Data cutoff: 2026-08-31.",
+        "verification": {
+          "passed": true,
+          "verified_fields": [
+            "data_cutoff_date",
+            "eligibility.status",
+            "impact.status",
+            "opportunity.product_code",
+            "prediction.confidence",
+            "prediction.propensity",
+            "prediction.reason_codes",
+            "recommendation.action_code",
+            "recommendation.decision"
+          ],
+          "unsupported_claims": [],
+          "fallback_used": true
+        },
+        "llm": {
+          "provider": null,
+          "model": null,
+          "prompt_version": "grounded_insight_v1.0.0"
+        }
+      }
+    },
+    {
+      "scenario": "paperless_banking_synthetic",
+      "explanation": {
+        "status": "FALLBACK_USED",
+        "headline": "Explore Paperless Banking",
+        "customer_message": "Paperless Banking may be worth exploring. This opportunity passed the configured product rules; authorised bank checks still apply. No reason codes were supplied, so relevance cannot be explained further. Prediction confidence: 0.87 on a zero-to-one scale. There is insufficient data to estimate sustainability impact. No customer action was supplied; contact the bank team for guidance. Based on data available as of 2026-08-31.",
+        "manager_message": "Product: Paperless Banking. Eligibility status: ELIGIBLE. Decision: RECOMMEND. The configured product rules passed; authorised bank checks still apply. No model reason codes were supplied. Model take-up propensity: 0.84 on a zero-to-one scale. Prediction confidence: 0.87 on a zero-to-one scale. Propensity describes predicted take-up; confidence is separate. Neither establishes financial eligibility. There is insufficient data to estimate sustainability impact. No next-step action was supplied. Do not invent an offer. Data cutoff: 2026-08-31.",
+        "verification": {
+          "passed": true,
+          "verified_fields": [
+            "data_cutoff_date",
+            "eligibility.status",
+            "impact.status",
+            "opportunity.product_code",
+            "prediction.confidence",
+            "prediction.propensity",
+            "prediction.reason_codes",
+            "recommendation.action_code",
+            "recommendation.decision"
+          ],
+          "unsupported_claims": [],
+          "fallback_used": true
+        },
+        "llm": {
+          "provider": null,
+          "model": null,
+          "prompt_version": "grounded_insight_v1.0.0"
+        }
+      }
+    }
+  ]
+}
