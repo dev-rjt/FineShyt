@@ -1,0 +1,76 @@
+{
+  "customer_id": "C10001",
+  "opportunity": "EV_FINANCE",
+  "product_id": "GP01",
+  "status": "RECOMMENDED",
+  "propensity": 0.84,
+  "confidence": 0.87,
+  "reason_codes": [
+    {
+      "code": "HIGH_FUEL_SPEND",
+      "kind": "DRIVER",
+      "label": "High fuel spend",
+      "plain_text": "You spend a lot on fuel each year."
+    },
+    {
+      "code": "HIGH_ANNUAL_MILEAGE",
+      "kind": "DRIVER",
+      "label": "High annual mileage",
+      "plain_text": "You drive a lot of miles each year."
+    }
+  ],
+  "gate": {
+    "rule_pass": true,
+    "failed_rules": [],
+    "rule_version": "v1",
+    "note": "Subject to the institution's authorised eligibility checks"
+  },
+  "impact": {
+    "status": "OK",
+    "is_estimate": true,
+    "horizon_months": 12,
+    "method": "EV_AVOIDED_V1: current fuel emissions minus electricity emissions after switching",
+    "metrics": [
+      {
+        "metric": "CO2E_KG",
+        "unit": "kg CO2e per year",
+        "low": 800.0,
+        "central": 1200.0,
+        "high": 1500.0
+      }
+    ],
+    "assumptions": [
+      {
+        "id": "A_EV_KWH_PER_KM",
+        "value": 0.2,
+        "unit": "kWh/km",
+        "source": "model_assumptions:A_EV_KWH_PER_KM"
+      }
+    ],
+    "factors": [
+      {
+        "factor_id": "EF_GRID_KWH",
+        "activity": "UK grid electricity",
+        "kg_co2e_per_unit": 0.2,
+        "unit": "kWh",
+        "source": "emission_factors:EF_GRID_KWH",
+        "source_year": 2025
+      }
+    ],
+    "missing_inputs": []
+  },
+  "insight": {
+    "text": "An EV may suit your driving. Our estimate is 800 to 1,500 kg CO2e a year. Subject to eligibility checks.",
+    "source": "TEMPLATE",
+    "verified": true
+  },
+  "action": {
+    "label": "Explore EV options",
+    "note": "Subject to eligibility checks"
+  },
+  "suppression_reason": null,
+  "rank_in_customer": 1,
+  "rank_score": 0.62,
+  "data_as_of": "2026-06-30",
+  "model_version": "propensity-gp01-v1"
+}

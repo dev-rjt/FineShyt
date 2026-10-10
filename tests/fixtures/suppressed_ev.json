@@ -1,0 +1,44 @@
+{
+  "customer_id": "C10002",
+  "opportunity": "EV_FINANCE",
+  "product_id": "GP01",
+  "status": "SUPPRESSED",
+  "propensity": 0.91,
+  "confidence": 0.89,
+  "reason_codes": [
+    {
+      "code": "ALREADY_EV_OWNER",
+      "kind": "GATE",
+      "label": "Already drives an EV",
+      "plain_text": "You already drive an electric vehicle."
+    }
+  ],
+  "gate": {
+    "rule_pass": false,
+    "failed_rules": [
+      {
+        "code": "ALREADY_EV_OWNER",
+        "message": "Customer already drives an electric vehicle"
+      }
+    ],
+    "rule_version": "v1",
+    "note": "Subject to the institution's authorised eligibility checks"
+  },
+  "impact": {
+    "status": "INSUFFICIENT_DATA",
+    "is_estimate": true,
+    "horizon_months": 12,
+    "method": "EV_AVOIDED_V1: current fuel emissions minus electricity emissions after switching",
+    "metrics": [],
+    "assumptions": [],
+    "factors": [],
+    "missing_inputs": []
+  },
+  "insight": null,
+  "action": null,
+  "suppression_reason": "ALREADY_EV_OWNER",
+  "rank_in_customer": null,
+  "rank_score": null,
+  "data_as_of": "2026-06-30",
+  "model_version": "propensity-gp01-v1"
+}

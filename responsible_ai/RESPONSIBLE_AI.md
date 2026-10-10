@@ -1,132 +1,108 @@
 # Responsible AI controls
 
-This package supports the synthetic Lloyds Green Customer Insights hackathon.
-ML predicts, official rules decide eligibility, a deterministic carbon engine
-estimates impact, and an LLM explains. This package implements checks only.
-Controls are design demonstrations, not proof of security, fairness or regulatory compliance.
+These controls support a synthetic-data hackathon demonstration. Passing them is
+not proof of security, fairness, model quality or regulatory compliance.
 
-## 1. Privacy
+## Runtime boundary
 
-`anonymise.py` writes value-only copies to `data/doctored/<original path relative
-to data>`. It uses a seeded permutation of the existing `C` plus five-digit ID
-space across every customer-linked source CSV; it does not hash identities.
-`customer_since` becomes the month's first day. `pii_scrubber.py` removes payee
-text after transfer/standing-order markers, emails, UK phone-like numbers,
-account-like digit strings and full UK postcodes. Short merchant references
-remain. It cannot detect arbitrary personal names reliably.
+The app follows `docs/API_CONTRACT.md`: ML produces propensity, confidence and
+reason codes; deterministic product rules produce `gate`; the carbon engine
+produces `impact`; and the LLM may write only `insight`. Propensity never decides
+eligibility, and neither the UI nor generated text may claim that a customer is
+eligible, approved, pre-approved, guaranteed or qualified.
 
-`schema_guard.py` compares column names/order, inferred pandas dtypes, observed
-null positions and complete categorical domains after CSV disk round trips.
-`anonymise.py` separately checks unchanged cells and row order. CSVs do not
-declare nullability; dictionary sample observations are not exhaustive constraints.
-IDs, dates and free text are not categorical enums. JSON uses an explicit schema
-and a conservative structural fingerprint; null-to-value transitions fail that
-preservation guard even when a contract permits them.
+`contract_checks.py` validates the API `Opportunity` object. It rejects unknown
+fields, invalid enums, non-finite scores, mismatched product IDs, inconsistent
+gate/status combinations, customer-visible suppression, unordered impact ranges,
+missing production provenance, unverified text and unsafe claims. Passing a
+`before_llm` snapshot verifies that no field except `insight` changed.
 
-`canary_test.py` plants `ZZ TESTNAME` only in a transaction description in an
-isolated raw copy, in a supported payee context. It scans doctored tables,
-feature outputs, supplied JSON records, supplied logs and supplied caches.
-It does not run ML/LLM components or inspect unprovided/external caches.
-The scan checks UTF-8/UTF-16 bytes and decoded JSON; compressed, encrypted or
-service-specific cache formats need their owner's export before scanning.
+The current app uses explicit placeholder assumptions and factors so that the UI
+can be developed before the carbon component lands. Strict validation rejects
+those placeholders. `allow_stub_placeholders=True` exists only for `USE_STUBS=true`
+tests and must not be used for production records.
 
-`identity_vault.csv` is permissioned to 0600 and gitignored. Its columns are
-`original_customer_id,pseudonymous_customer_id`; it is never a model input.
-The deterministic seed, preserved ID space, possible fixed points and retained
-row order make this pseudonymisation, not irreversible anonymity. Coarsened age,
-income bands and postcode areas can still be quasi-identifiers. Only synthetic
-banking profiles are permitted; public seeds must not be linked to real people.
+## Privacy
 
-## 2. Bias
+`anonymise.py` creates schema-preserving copies under `data/doctored/` and uses a
+seeded permutation of the existing `C` plus five-digit customer ID space. It
+coarsens `customer_since` to a month and scrubs common transfer payees, emails,
+UK phone-like numbers, long account-like digit strings and full UK postcodes.
+Original files are never changed.
 
-`features_loader.py` excludes age, postcode area, IDs, provenance and labels.
-Income is banned by the single `BAN_INCOME_FOR_MODELS` configuration constant;
-the ML owner must confirm any change. Age and income remain in doctored source
-tables solely for audits. Excluding age and income does not remove proxy bias:
-region, housing, spending and digital activity can correlate with them.
+The default `identity_vault.csv` is permissioned to 0600 and ignored by Git. The
+mapping is pseudonymisation, not irreversible anonymity: the seed is fixed, row
+order is retained, values may have fixed points, and age/income/region fields can
+remain quasi-identifiers. Only synthetic or lawfully public data is permitted.
 
-`bias_audit.py` reports per-product recommendation decision rates, mean propensity
-and max-minus-min gaps by existing age and income bands. Every customer must have
-an opportunity for each supplied product; a selected recommendations-only sample
-is rejected. Groups below 10 suppress counts and metrics; gaps exclude suppressed
-groups and are null with fewer than two publishable bands. This is not differential
-privacy, and metrics are descriptive diagnostics rather than fairness conclusions.
+`canary_test.py` inserts a synthetic payee token into an isolated data copy, runs
+the anonymiser and feature projection, then scans the supplied records, reports,
+logs and caches. It cannot inspect stores that were not supplied, encrypted or
+compressed formats, or external services.
 
-## 3. Explainability
+## Feature and leakage controls
 
-`contract_checks.py` requires documented reason-code structures and available
-impact units, method, time horizon, assumptions, ordered estimate ranges and
-emission-factor provenance. `audit_log.py` stores only allowlisted pseudonymous
-IDs, product, versions, statuses and timestamps. Logs append under a Unix advisory
-lock; they are not tamper-proof or cryptographically authenticated.
+`features_loader.py` is a fail-closed projection. IDs, age, postcode area,
+provenance, labels and generated archetypes are excluded. Income is banned by the
+single `BAN_INCOME_FOR_MODELS` switch unless the ML owner explicitly changes the
+policy. Removing protected fields does not remove proxy bias.
 
-`model_cards/` contains four propensity-model templates and a transaction
-classifier template. Metrics remain placeholders until supplied by the ML owner.
-Confidence is not the probability of take-up. Propensity describes the model's
-target score; neither it nor confidence establishes eligibility or causation.
+`leakage_audit.py` checks customer split coverage, duplicate/overlapping keys,
+feature dates, post-cutoff label windows, label provenance, exact label copies and
+very high numeric correlations. Undefined correlations and a PASS result do not
+prove that leakage is absent. Encoders, imputers and text vocabularies must still
+be fitted on training customers only.
 
-## 4. Hallucination
+## Explainability and impact
 
-`contract_checks.py` rejects unknown fields, incompatible major schema versions,
-invalid enums, non-finite scores, empty/missing-value sentinels, unavailable
-impact estimates and inconsistent visibility. Passing `before_llm` compares
-every section except `explanation`; a final object alone cannot prove write scope.
-Verification/fallback flags are checked, but this package does not implement an
-LLM, fact verifier or fallback writer, and cannot prove text is factually supported.
+For `impact.status = OK`, records need at least one ordered low/central/high range,
+a positive horizon, a documented method, assumptions and emission-factor
+provenance. Metrics remain separate: CO2e, energy, paper and digital adoption are
+never summed. `INSUFFICIENT_DATA` carries no metrics; zero is not a missing-value
+substitute.
 
-The PDF's ineligible and missing-data examples are partial records. Their exact
-structures are retained in `tests/fixtures/`; tests replace their sections into
-the canonical example for complete-record checks. Minimal nonavailable impact
-objects are accepted as shown in the PDF. `calculation_error.json` and
-`conflicting_signals.json` are illustrative, not organiser examples. No illustrative
-marker has been added to the contract object. The conflict fixture demonstrates
-the documented manual-review shape; it does not define a homeownership rule.
+Customer-facing `insight` objects must be verified and come from `LLM` or the
+deterministic `TEMPLATE` fallback. The checks can enforce write scope and basic
+claim language, but they cannot prove that arbitrary prose is factually supported.
+The explanation owner remains responsible for number, product and reason-code
+verification before a response is shown.
 
-## 5. Human oversight
+`audit_log.py` stores only an event ID, pseudonymous customer/product identifiers,
+statuses, component versions, factor IDs, dates and timestamp. It never stores
+explanation text, customer profiles or the full opportunity. Its Unix advisory
+lock serialises package writers; it is not a tamper-evident ledger.
 
-`contract_checks.py` enforces customer visibility only for ELIGIBLE plus RECOMMEND.
-High propensity cannot override an ineligible or unresolved eligibility status.
-Manual review requires the audit human-review flag. Official eligibility rules
-remain authoritative, and any lending/affordability decision belongs to the bank.
+## Bias and human oversight
 
-`scenario_tests.py` reads actual scenario names from `demo_scenarios.csv`, checks
-their supplied records and exercises dangerous visibility/zero mutations. Without
-team-supplied expectations it reports invariant coverage only. It does not infer
-product-rule outcomes from scenario names. The rule owner must provide expected
-contract paths/values for product-specific assertions and arrange human review.
+`bias_audit.py` reports per-product recommendation rate, mean propensity and mean
+confidence by existing age and income bands. Every customer must have a decision
+for each included product, preventing a recommendations-only denominator. Groups
+below the configured threshold suppress counts and metrics. Gaps are descriptive
+diagnostics on synthetic data, not fairness conclusions.
 
-## 6. Data limits
+`scenario_tests.py` validates actual scenario records and always exercises core
+guard mutations. Product-specific expectations are checked only when the rule
+owner supplies an expectations mapping. The module does not infer business rules
+from scenario names. Authorised bank processes own lending, affordability and
+human-review decisions.
 
-Profiles are synthetic. Some transaction descriptions/amounts are seeded from
-UCI Online Retail II and some energy profiles from public London Smart Meter
-data, as indicated by `source_basis` and `profile_source`. Synthetic profiles do
-not make every source observation synthetic. These sources do not establish
-real bank take-up, national household representativeness or causal impacts.
+## Data and model limits
 
-Source attribution: Chen, D. (2012), Online Retail II, UCI Machine Learning
-Repository, DOI https://doi.org/10.24432/C5CG6D. The UCI dataset page states
-CC BY 4.0: https://archive.ics.uci.edu/dataset/502/online+retail+ii.
-UK Power Networks, Low Carbon London, SmartMeter Energy Consumption Data in
-London Households: https://data.london.gov.uk/dataset/smartmeter-energy-consumption-data-in-london-households-vqm0d.
-The London page states Creative Commons Attribution without an explicit version
-in its rendered metadata; retain the exact downloaded resource's licence notice
-and confirm it before redistribution. These notes are attribution, not a licence
-grant for third-party material. Public source IDs/keys must not become model features.
+The profiles are synthetic. Public retail and smart-meter samples may seed some
+descriptions and shapes; retain source attribution and licence notices. Synthetic
+outcomes do not demonstrate real customer demand, national representativeness or
+causal sustainability impact.
 
-`verify_inventory.py` checks bytes, rows and column counts for all listed source
-files. `leakage_audit.py` checks banned features, customer partitions, dates,
-post-cutoff outcome windows, label provenance, exact copies and absolute Pearson
-correlation over 0.9. Undefined correlations and PASS do not prove no leakage;
-fit encoders/imputers on training customers only. Transaction-label provenance
-has no `label_method` column in the dictionary, so none is invented for it.
+The model cards in `responsible_ai/model_cards/` are templates until the ML owner
+adds actual versions, features, seeds, metrics, calibration, thresholds and review
+dates. Confidence is not take-up probability. Impact estimates come only from the
+deterministic carbon engine and must be labelled as estimates.
 
-The dataset cutoff is 2026-06-30; the PDF example's 2026-08-31 is an illustrative
-contract value, not permission to use later feature data. Impact figures are
-estimates, not measured savings; this package does not calculate them. The PDF
-documents only EV calculation-input keys; other products need a team-approved
-schema extension using agreed fields before those inputs are accepted.
+## Required ownership hand-offs
 
-Tests use small synthetic fixtures. Full production-data results require all
-18 inventory tables and externally produced opportunity records aligned to the
-doctored IDs; missing inputs fail instead of being called PASS. Source tables
-and raw predictions must not be logged or sent to an LLM by this package.
+- Data owner: complete inventory, generator version, source provenance and licences.
+- ML owner: approved features, train-only preprocessing, splits, labels and metrics.
+- Rules owner: authoritative product-rule logic and scenario expectations.
+- Carbon owner: formulas, ranges, assumptions and versioned factor provenance.
+- Explanation owner: before/after snapshots, verifier results and template fallback.
+- Integration owner: validate full API opportunity records and preserve audit scope.

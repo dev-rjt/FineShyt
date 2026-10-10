@@ -1,0 +1,52 @@
+{
+  "customer_id": "C10003",
+  "opportunity": "EV_FINANCE",
+  "product_id": "GP01",
+  "status": "INSUFFICIENT_DATA",
+  "propensity": 0.48,
+  "confidence": 0.35,
+  "reason_codes": [
+    {
+      "code": "HIGH_FUEL_SPEND",
+      "kind": "DRIVER",
+      "label": "High fuel spend",
+      "plain_text": "You spend a lot on fuel each year."
+    },
+    {
+      "code": "MISSING_MILEAGE",
+      "kind": "DATA_QUALITY",
+      "label": "Mileage missing",
+      "plain_text": "We do not have your yearly mileage yet."
+    }
+  ],
+  "gate": {
+    "rule_pass": true,
+    "failed_rules": [],
+    "rule_version": "v1",
+    "note": "Subject to the institution's authorised eligibility checks"
+  },
+  "impact": {
+    "status": "INSUFFICIENT_DATA",
+    "is_estimate": true,
+    "horizon_months": 12,
+    "method": "EV_AVOIDED_V1: current fuel emissions minus electricity emissions after switching",
+    "metrics": [],
+    "assumptions": [],
+    "factors": [],
+    "missing_inputs": ["annual_mileage"]
+  },
+  "insight": {
+    "text": "An EV may suit your driving. We need more information before estimating impact. Subject to eligibility checks.",
+    "source": "TEMPLATE",
+    "verified": true
+  },
+  "action": {
+    "label": "Explore EV options",
+    "note": "Subject to eligibility checks"
+  },
+  "suppression_reason": null,
+  "rank_in_customer": 4,
+  "rank_score": 0.05,
+  "data_as_of": "2026-06-30",
+  "model_version": "propensity-gp01-v1"
+}
