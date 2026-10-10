@@ -80,6 +80,66 @@ git switch feature/ml-json-contract-v1
 
 GitHub branch: <https://github.com/dev-rjt/FineShyt/tree/feature/ml-json-contract-v1>
 
+## Run on the team's canonical dataset
+
+The commands above regenerate the ML module's original standalone synthetic dataset. For the team's actual
+`data/` pipeline, use this command instead:
+
+```bash
+.venv/bin/python ml/run_project_dataset.py
+```
+
+It reads:
+
+- `data/processed/customer_360.csv`;
+- `data/processed/product_takeup_labels.csv`;
+- `data/processed/transaction_category_labels.csv`;
+- the exact customer splits under `data/splits/`;
+- `data/reference/emission_factors.csv` and `green_products.csv`.
+
+It first requires `data/reports/validation_report.json` to have `overall_status: PASS`. It then trains the
+transaction classifier and four propensity models, creates 20,000 customer-product records, and writes them to
+`ml/outputs/project_dataset/`.
+
+For a faster propensity-only retrain after the transaction model already exists:
+
+```bash
+.venv/bin/python ml/run_project_dataset.py --skip-transaction-model
+```
+
+Project-specific trained artifacts are:
+
+- `ml/models/project_txn_classifier.joblib`;
+- `ml/models/project_propensity_models.joblib`;
+- `ml/outputs/project_evaluation_report.json`.
+
+### Score one customer without retraining
+
+Training is an offline operation. The final app must load the saved model and run inference; it must not retrain
+when a user opens a screen.
+
+```bash
+.venv/bin/python ml/predict_project_dataset.py \
+  --customer-id C00001 \
+  --output ml/outputs/project_dataset/C00001.json
+```
+
+The output contains exactly four objects: EV Finance, Green Home Loan, Solar Finance, and Paperless Banking.
+
+## How the final app uses this
+
+1. The data pipeline periodically rebuilds Customer 360 from transactions, products, vehicles, energy, and digital use.
+2. An offline training job updates the saved models only when approved training data or model code changes.
+3. When the dashboard requests a customer, the backend calls `predict_project_dataset.predict(data_root, customer_id)`.
+4. The model supplies propensity, confidence, and reason evidence for all four products.
+5. Eligibility rules can block the opportunity or request missing information even when propensity is high.
+6. The deterministic impact engine calculates the estimate using the versioned 2026 factor catalogue.
+7. The backend returns the validated JSON object to the frontend.
+8. The customer screen shows only records with `customer_visible=true`; the manager and audit screens can also show
+   blocked and manual-review records with their decision codes.
+
+The frontend should not recalculate scores, eligibility, or impact. It should display the structured backend result.
+
 Real data later:
 
 ```bash

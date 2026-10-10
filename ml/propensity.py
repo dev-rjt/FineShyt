@@ -88,6 +88,12 @@ class PropensityModel:
             self.models.append(lgb.train(p, lgb.Dataset(Xtr[self.feats], ytr), num_boost_round=max(30, int(self.rounds * 1.1))))
         z = self._raw(Xva).mean(1, keepdims=True)           # Platt scaling fit on VAL (never on test)
         self.cal = LogisticRegression(C=1e6).fit(z, yva)
+        # A noisy validation subset can produce a negative Platt slope, which
+        # reverses model ranking. Calibration may rescale probabilities but must
+        # never invert them; fall back to a two-parameter training calibration.
+        if self.cal.coef_[0, 0] <= 0:
+            z_train = self._raw(Xtr).mean(1, keepdims=True)
+            self.cal = LogisticRegression(C=1e6).fit(z_train, ytr)
         self.lr = make_pipeline(SimpleImputer(strategy="median"), StandardScaler(),
                                 LogisticRegression(C=0.3, max_iter=2000)).fit(Xtr[self.feats], ytr)
         p_tree = self.cal.predict_proba(z)[:, 1]
@@ -97,8 +103,11 @@ class PropensityModel:
         self.blend_weight = min(candidates, key=lambda x: x[1])[0]
         self.support = {f: np.nanpercentile(Xtr[f], [1, 99]) for f in self.feats}
         pv = self.predict(Xva)["propensity"].values
-        prec, rec, thr = precision_recall_curve(yva, pv); f1 = 2 * prec * rec / (prec + rec + 1e-9)
-        self.threshold = float(thr[np.argmax(f1[:-1])])      # operating threshold = max-F1 on val
+        prec, rec, thr = precision_recall_curve(yva, pv)
+        beta2 = .25  # F0.5: precision matters more for a limited relationship-manager queue
+        f05 = (1 + beta2) * prec * rec / (beta2 * prec + rec + 1e-9)
+        best = float(thr[np.argmax(f05[:-1])])
+        self.threshold = max(best, float(np.quantile(pv, .75)))
         # learned feature weights (normalised gain, averaged over ensemble)
         gain = np.mean([m.feature_importance("gain") for m in self.models], axis=0)
         self.importance = pd.Series(gain / gain.sum(), index=self.feats).sort_values(ascending=False)
@@ -146,12 +155,16 @@ def baseline_lr(Xtr, ytr, Xs):
     m = make_pipeline(SimpleImputer(strategy="median"), StandardScaler(), LogisticRegression(C=0.3, max_iter=2000)).fit(Xtr, ytr)
     return m, {k: m.predict_proba(v)[:, 1] for k, v in Xs.items()}
 
-def train_all(F, labels, rules, split, verbose=True):
+def train_all(F, labels, rules, split, verbose=True, artifact_prefix="", model_filename="propensity_models.joblib",
+              candidate_only=True):
     """F: customer-360 indexed by customer_id. Returns models + evaluation report."""
     models, report = {}, {}
     sp = split.set_index("customer_id").split.reindex(F.index)
     for prod in PRODUCTS:
-        cand = rules[f"eligible_{prod}"] & (labels.set_index("customer_id")[f"candidate_{prod}"].reindex(F.index) == 1)
+        if candidate_only:
+            cand = rules[f"eligible_{prod}"] & (labels.set_index("customer_id")[f"candidate_{prod}"].reindex(F.index) == 1)
+        else:
+            cand = pd.Series(True, index=F.index)
         y = labels.set_index("customer_id")[f"takeup_{prod}"].reindex(F.index)
         feats = MODEL_FEATURES[prod]; d = lambda s: cand & (sp == s)
         Xtr, ytr, Xva, yva, Xte, yte = F[d("train")], y[d("train")].values, F[d("val")], y[d("val")].values, F[d("test")], y[d("test")].values
@@ -166,9 +179,11 @@ def train_all(F, labels, rules, split, verbose=True):
         r["cv_best"] = dict(m.params, rounds=m.rounds); r["threshold"] = m.threshold
         r["champion_blend"] = {"lightgbm_weight": float(m.blend_weight), "logistic_regression_weight": float(1 - m.blend_weight),
                                "selection_metric": "validation_logloss"}
+        r["threshold_policy"] = "max(validation F0.5 threshold, validation 75th percentile)"
         r["overfit_gap_auc_train_minus_test"] = r["train"]["auc"] - r["test"]["auc"]
         report[prod] = r
-        m.grid.to_csv(OUT_DIR / f"cv_grid_{prod}.csv", index=False); m.importance.to_csv(OUT_DIR / f"feature_weights_{prod}.csv", header=["normalised_gain"])
+        m.grid.to_csv(OUT_DIR / f"{artifact_prefix}cv_grid_{prod}.csv", index=False)
+        m.importance.to_csv(OUT_DIR / f"{artifact_prefix}feature_weights_{prod}.csv", header=["normalised_gain"])
         if verbose:
             print(f"\n=== {prod}: n_train={len(ytr)} (pos {int(ytr.sum())}), n_val={len(yva)}, n_test={len(yte)} (pos {int(yte.sum())})")
             print(f"  chosen: lr={m.params['learning_rate']} leaves={m.params['num_leaves']} min_child={m.params['min_child_samples']} rounds={m.rounds}")
@@ -177,6 +192,6 @@ def train_all(F, labels, rules, split, verbose=True):
             b = r["baseline_logreg_test"]; print(f"  baseline LogReg(test) AUC={b['auc']:.3f} PR-AUC={b['pr_auc']:.3f} logloss={b['logloss']:.3f} | prevalence-only logloss={r['baseline_prevalence_test_logloss']:.3f}")
             print(f"  test AUC 95% CI {r['auc_test_ci95']}  train-test AUC gap={r['overfit_gap_auc_train_minus_test']:.3f}")
             print("  top weights:", ", ".join(f"{k}={v:.2f}" for k, v in m.importance.head(5).items()))
-    joblib.dump(models, MODEL_DIR / "propensity_models.joblib")
-    json.dump(report, open(OUT_DIR / "evaluation_report.json", "w"), indent=2, default=float)
+    joblib.dump(models, MODEL_DIR / model_filename)
+    json.dump(report, open(OUT_DIR / f"{artifact_prefix}evaluation_report.json", "w"), indent=2, default=float)
     return models, report

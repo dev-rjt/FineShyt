@@ -121,9 +121,10 @@ def _explanation(product, reasons, impact, action, eligible):
                              "unsupported_claims": [], "fallback_used": True},
             "llm": {"provider": "NONE", "model": None, "prompt_version": "deterministic_fallback_v1.0.0"}}
 
-def build_record(customer_id, product, row, prediction, reason_details, threshold, request_number):
+def build_record(customer_id, product, row, prediction, reason_details, threshold, request_number,
+                 impact_section=None, data_cutoff=None):
     elig = eligibility_detail(row, product)
-    impact = _impact_contract(product, estimate_impact(product, row), elig["is_eligible"])
+    impact = impact_section if impact_section is not None else _impact_contract(product, estimate_impact(product, row), elig["is_eligible"])
     recommend = elig["status"] == "ELIGIBLE" and prediction["propensity"] >= threshold
     decision = "MANUAL_REVIEW" if elig["status"] == "MANUAL_REVIEW" else ("RECOMMEND" if recommend else "DO_NOT_RECOMMEND")
     action_map = {"EV_FINANCE": ("EXPLORE_EV_OPTIONS", "Explore EV options"), "GREEN_HOME_LOAN": ("EXPLORE_HOME_RETROFIT", "Explore green home improvements"),
@@ -135,9 +136,11 @@ def build_record(customer_id, product, row, prediction, reason_details, threshol
     available = row.drop(labels=["data_timestamp"], errors="ignore").notna().mean()
     impact_norm = 1.0 if impact["status"] == "AVAILABLE" else .5
     priority = round(float(prediction["propensity"] * prediction["confidence"] * impact_norm), 4) if recommend else None
-    rec = {"schema_version": "1.0.0", "request_id": f"REQ-{CUTOFF_DATE:%Y%m%d}-{request_number:08d}",
+    cutoff = str(data_cutoff or row.get("data_timestamp") or CUTOFF_DATE.date())
+    cutoff_token = cutoff.replace("-", "")
+    rec = {"schema_version": "1.0.0", "request_id": f"REQ-{cutoff_token}-{request_number:08d}",
            "generated_at": datetime.now(ZoneInfo("Asia/Kolkata")).isoformat(timespec="seconds"),
-           "data_cutoff_date": str(CUTOFF_DATE.date()),
+           "data_cutoff_date": cutoff,
            "customer": {"customer_id": customer_id, "segment": _segment(row), "region": str(row.region).upper().replace(" ", "_"), "data_completeness": round(float(available), 4)},
            "opportunity": {"product_id": PRODUCT_IDS[product], "product_code": product, "product_name": PRODUCT_NAMES[product], "category": PRODUCT_CATEGORIES[product]},
            "prediction": {"propensity": round(float(prediction["propensity"]), 4), "confidence": round(float(prediction["confidence"]), 4),

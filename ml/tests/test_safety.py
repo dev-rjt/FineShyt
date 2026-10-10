@@ -25,5 +25,15 @@ class EligibilitySafetyTests(unittest.TestCase):
         result = eligibility_detail(row(home_owner=0), "SOLAR_FINANCE")
         self.assertEqual(result["status"], "INELIGIBLE")
 
+    def test_existing_solar_is_blocked(self):
+        result = eligibility_detail(row(has_solar=True), "SOLAR_FINANCE")
+        self.assertEqual(result["status"], "INELIGIBLE")
+        self.assertIn("NO_EXISTING_SOLAR", result["failed_rules"])
+
+    def test_missing_fuel_type_requires_review(self):
+        result = eligibility_detail(row(fuel_type_code=float("nan")), "EV_FINANCE")
+        self.assertEqual(result["status"], "MANUAL_REVIEW")
+        self.assertIn("vehicle_fuel_type", result["missing_requirements"])
+
 if __name__ == "__main__":
     unittest.main()

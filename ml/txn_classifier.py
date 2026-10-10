@@ -37,7 +37,7 @@ def _clean(s: pd.Series) -> pd.Series:
     s = s.str.upper().str.replace(r"\d+", " ", regex=True)
     return s.str.replace(r"\b(CARD PAYMENT TO|POS|VIS|CRD|GB)\b", " ", regex=True).str.replace(r"\s+", " ", regex=True).str.strip()
 
-def train_txn_classifier(tx, labels, split):
+def train_txn_classifier(tx, labels, split, model_filename="txn_classifier.joblib"):
     df = tx.merge(labels, on="transaction_id").merge(split, on="customer_id")
     df["clean"] = _clean(df.merchant_description)
     tr, te = df[df.split == "train"], df[df.split.isin(["val", "test"])]
@@ -53,7 +53,7 @@ def train_txn_classifier(tx, labels, split):
                rules_macro_f1=f1_score(ev.category, base, average="macro"), rules_acc=accuracy_score(ev.category, base))
     print("\n[Txn categorisation] held-out (val+test customers)\n", {k: round(v, 4) for k, v in rep.items()})
     print(classification_report(ev.category, pred, digits=3))
-    joblib.dump((vec, clf), MODEL_DIR / "txn_classifier.joblib")
+    joblib.dump((vec, clf), MODEL_DIR / model_filename)
     return vec, clf, rep
 
 def predict_categories(tx, vec, clf, conf_floor=0.0):

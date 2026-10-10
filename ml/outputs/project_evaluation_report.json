@@ -1,0 +1,290 @@
+{
+  "EV_FINANCE": {
+    "train": {
+      "auc": 0.6896233088526679,
+      "pr_auc": 0.20661788483836002,
+      "logloss": 0.3087255832897038,
+      "brier": 0.08595117399302249,
+      "lift_top10": 2.368421052631579,
+      "prevalence": 0.09771428571428571,
+      "n": 3500,
+      "n_pos": 342
+    },
+    "val": {
+      "auc": 0.573638438755683,
+      "pr_auc": 0.12359585204654255,
+      "logloss": 0.3340670648689847,
+      "brier": 0.09384460004654165,
+      "lift_top10": 1.2658227848101264,
+      "prevalence": 0.10533333333333333,
+      "n": 750,
+      "n_pos": 79
+    },
+    "test": {
+      "auc": 0.5775181425439996,
+      "pr_auc": 0.11494535636220542,
+      "logloss": 0.30573044600326454,
+      "brier": 0.08332736399141201,
+      "lift_top10": 1.1594202898550725,
+      "prevalence": 0.092,
+      "n": 750,
+      "n_pos": 69
+    },
+    "baseline_logreg_test": {
+      "auc": 0.533997318521356,
+      "pr_auc": 0.13700974303222477,
+      "logloss": 0.3097158160413121,
+      "brier": 0.08386799182703616,
+      "lift_top10": 1.4492753623188406,
+      "prevalence": 0.092,
+      "n": 750,
+      "n_pos": 69
+    },
+    "baseline_prevalence_test_logloss": 0.30732933077519203,
+    "auc_test_ci95": [
+      0.507,
+      0.646
+    ],
+    "cv_best": {
+      "objective": "binary",
+      "metric": "binary_logloss",
+      "verbosity": -1,
+      "feature_fraction": 0.8,
+      "bagging_fraction": 0.8,
+      "bagging_freq": 1,
+      "lambda_l2": 5.0,
+      "lambda_l1": 0.5,
+      "min_gain_to_split": 0.0,
+      "max_depth": -1,
+      "n_jobs": 4,
+      "learning_rate": 0.02,
+      "num_leaves": 4,
+      "min_child_samples": 50,
+      "rounds": 105
+    },
+    "threshold": 0.11970705158029271,
+    "champion_blend": {
+      "lightgbm_weight": 1.0,
+      "logistic_regression_weight": 0.0,
+      "selection_metric": "validation_logloss"
+    },
+    "threshold_policy": "max(validation F0.5 threshold, validation 75th percentile)",
+    "overfit_gap_auc_train_minus_test": 0.11210516630866829
+  },
+  "GREEN_HOME_LOAN": {
+    "train": {
+      "auc": 0.6496752091665234,
+      "pr_auc": 0.21229300890211192,
+      "logloss": 0.35652920474479116,
+      "brier": 0.10367806104016007,
+      "lift_top10": 2.0754716981132075,
+      "prevalence": 0.12114285714285715,
+      "n": 3500,
+      "n_pos": 424
+    },
+    "val": {
+      "auc": 0.5856049162318044,
+      "pr_auc": 0.14108446001770708,
+      "logloss": 0.35624850814423265,
+      "brier": 0.10275049325671243,
+      "lift_top10": 1.1363636363636365,
+      "prevalence": 0.11733333333333333,
+      "n": 750,
+      "n_pos": 88
+    },
+    "test": {
+      "auc": 0.6378136233088275,
+      "pr_auc": 0.16053652046628653,
+      "logloss": 0.337765601596032,
+      "brier": 0.09651555409061227,
+      "lift_top10": 1.4457831325301205,
+      "prevalence": 0.11066666666666666,
+      "n": 750,
+      "n_pos": 83
+    },
+    "baseline_logreg_test": {
+      "auc": 0.6399089611820596,
+      "pr_auc": 0.1764249738759299,
+      "logloss": 0.33611621911015815,
+      "brier": 0.09610782992520517,
+      "lift_top10": 2.1686746987951806,
+      "prevalence": 0.11066666666666666,
+      "n": 750,
+      "n_pos": 83
+    },
+    "baseline_prevalence_test_logloss": 0.3484357243955263,
+    "auc_test_ci95": [
+      0.576,
+      0.694
+    ],
+    "cv_best": {
+      "objective": "binary",
+      "metric": "binary_logloss",
+      "verbosity": -1,
+      "feature_fraction": 0.8,
+      "bagging_fraction": 0.8,
+      "bagging_freq": 1,
+      "lambda_l2": 5.0,
+      "lambda_l1": 0.5,
+      "min_gain_to_split": 0.0,
+      "max_depth": -1,
+      "n_jobs": 4,
+      "learning_rate": 0.02,
+      "num_leaves": 4,
+      "min_child_samples": 20,
+      "rounds": 102
+    },
+    "threshold": 0.14353242582252873,
+    "champion_blend": {
+      "lightgbm_weight": 0.5,
+      "logistic_regression_weight": 0.5,
+      "selection_metric": "validation_logloss"
+    },
+    "threshold_policy": "max(validation F0.5 threshold, validation 75th percentile)",
+    "overfit_gap_auc_train_minus_test": 0.011861585857695922
+  },
+  "SOLAR_FINANCE": {
+    "train": {
+      "auc": 0.6697338709677418,
+      "pr_auc": 0.22002129450764393,
+      "logloss": 0.3367101501113702,
+      "brier": 0.09714101845176913,
+      "lift_top10": 2.2,
+      "prevalence": 0.11428571428571428,
+      "n": 3500,
+      "n_pos": 400
+    },
+    "val": {
+      "auc": 0.6574766096440235,
+      "pr_auc": 0.17153647598918834,
+      "logloss": 0.32842750952022187,
+      "brier": 0.09411278795411356,
+      "lift_top10": 1.7283950617283952,
+      "prevalence": 0.108,
+      "n": 750,
+      "n_pos": 81
+    },
+    "test": {
+      "auc": 0.6524017789588292,
+      "pr_auc": 0.17323296961547985,
+      "logloss": 0.3280821376920939,
+      "brier": 0.09395477044209775,
+      "lift_top10": 1.6049382716049383,
+      "prevalence": 0.108,
+      "n": 750,
+      "n_pos": 81
+    },
+    "baseline_logreg_test": {
+      "auc": 0.6471608629057557,
+      "pr_auc": 0.17337980886466164,
+      "logloss": 0.32853255141537147,
+      "brier": 0.09407808056263867,
+      "lift_top10": 1.6049382716049383,
+      "prevalence": 0.108,
+      "n": 750,
+      "n_pos": 81
+    },
+    "baseline_prevalence_test_logloss": 0.3425116840877152,
+    "auc_test_ci95": [
+      0.594,
+      0.709
+    ],
+    "cv_best": {
+      "objective": "binary",
+      "metric": "binary_logloss",
+      "verbosity": -1,
+      "feature_fraction": 0.8,
+      "bagging_fraction": 0.8,
+      "bagging_freq": 1,
+      "lambda_l2": 5.0,
+      "lambda_l1": 0.5,
+      "min_gain_to_split": 0.0,
+      "max_depth": -1,
+      "n_jobs": 4,
+      "learning_rate": 0.02,
+      "num_leaves": 4,
+      "min_child_samples": 50,
+      "rounds": 181
+    },
+    "threshold": 0.16226156550131177,
+    "champion_blend": {
+      "lightgbm_weight": 0.25,
+      "logistic_regression_weight": 0.75,
+      "selection_metric": "validation_logloss"
+    },
+    "threshold_policy": "max(validation F0.5 threshold, validation 75th percentile)",
+    "overfit_gap_auc_train_minus_test": 0.017332092008912614
+  },
+  "PAPERLESS_BANKING": {
+    "train": {
+      "auc": 0.6947197950378564,
+      "pr_auc": 0.5115205916910508,
+      "logloss": 0.5819042897131337,
+      "brier": 0.19805961335781813,
+      "lift_top10": 1.840490797546012,
+      "prevalence": 0.326,
+      "n": 3500,
+      "n_pos": 1141
+    },
+    "val": {
+      "auc": 0.6545387900809587,
+      "pr_auc": 0.48339600142424033,
+      "logloss": 0.6082572187694472,
+      "brier": 0.20995160731369986,
+      "lift_top10": 1.6666666666666667,
+      "prevalence": 0.336,
+      "n": 750,
+      "n_pos": 252
+    },
+    "test": {
+      "auc": 0.6579654385922191,
+      "pr_auc": 0.4517936939135647,
+      "logloss": 0.5937264944988675,
+      "brier": 0.20343008200454687,
+      "lift_top10": 1.3580246913580247,
+      "prevalence": 0.324,
+      "n": 750,
+      "n_pos": 243
+    },
+    "baseline_logreg_test": {
+      "auc": 0.656731682372708,
+      "pr_auc": 0.4472637424898561,
+      "logloss": 0.5935830661230067,
+      "brier": 0.2033435740932476,
+      "lift_top10": 1.3580246913580247,
+      "prevalence": 0.324,
+      "n": 750,
+      "n_pos": 243
+    },
+    "baseline_prevalence_test_logloss": 0.6298569724426042,
+    "auc_test_ci95": [
+      0.619,
+      0.701
+    ],
+    "cv_best": {
+      "objective": "binary",
+      "metric": "binary_logloss",
+      "verbosity": -1,
+      "feature_fraction": 0.8,
+      "bagging_fraction": 0.8,
+      "bagging_freq": 1,
+      "lambda_l2": 5.0,
+      "lambda_l1": 0.5,
+      "min_gain_to_split": 0.0,
+      "max_depth": -1,
+      "n_jobs": 4,
+      "learning_rate": 0.02,
+      "num_leaves": 4,
+      "min_child_samples": 50,
+      "rounds": 193
+    },
+    "threshold": 0.46639012900015486,
+    "champion_blend": {
+      "lightgbm_weight": 0.5,
+      "logistic_regression_weight": 0.5,
+      "selection_metric": "validation_logloss"
+    },
+    "threshold_policy": "max(validation F0.5 threshold, validation 75th percentile)",
+    "overfit_gap_auc_train_minus_test": 0.03675435644563729
+  }
+}
