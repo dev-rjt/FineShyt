@@ -1,37 +1,30 @@
-# Python
+# Python environments and caches
 .venv/
+.venv-rai/
 __pycache__/
 *.py[cod]
-
-# Secrets
-.env
-
-# Mac
-.DS_Store
-
-# Editors
-.vscode/
-
-# Frontend
-node_modules/
-dist/
-
-# Data and generated files
-data/raw/
-data/processed/
-_old_setup/
-
-# Responsible AI generated files
-responsible_ai/identity_vault.csv
-data/doctored/
-data/reports/rai/
 .pytest_cache/
 .cache/
 cache/
 caches/
-output/
-outputs/
+
+# Secrets and local settings
+.env
+.env.*
+.DS_Store
+.vscode/
+
+# Frontend/build artifacts
+node_modules/
+dist/
+tmp/
+.artifact/
+
+# Generated data and audit artifacts
+data/external/cache/
+data/doctored/
+data/reports/rai/
+responsible_ai/identity_vault.csv
 .rai-stage-*/
 .identity-*
-.env.*
-.venv-rai/
+_old_setup/

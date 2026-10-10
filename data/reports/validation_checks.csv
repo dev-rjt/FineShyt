@@ -1,0 +1,33 @@
+check,status,detail
+customers_unique,PASS,"5,000 customer rows"
+transactions_unique,PASS,"276,346 transaction rows"
+vehicles_unique,PASS,"3,416 vehicle rows"
+customer_360_one_per_customer,PASS,"5,000 feature rows"
+transactions_foreign_keys,PASS,unknown customer IDs: 0
+products_foreign_keys,PASS,unknown customer IDs: 0
+vehicles_foreign_keys,PASS,unknown customer IDs: 0
+energy_foreign_keys,PASS,unknown customer IDs: 0
+digital_foreign_keys,PASS,unknown customer IDs: 0
+labels_foreign_keys,PASS,unknown customer IDs: 0
+transaction_categories_allowed,PASS,"['AUTOMOTIVE', 'ELECTRICITY', 'FUEL', 'GAS', 'HOME_IMPROVEMENT', 'OTHER', 'PUBLIC_TRANSPORT', 'UTILITIES']"
+all_categories_present,PASS,"{'OTHER': 149028, 'UTILITIES': 23217, 'FUEL': 22433, 'PUBLIC_TRANSPORT': 20913, 'HOME_IMPROVEMENT': 17297, 'AUTOMOTIVE': 15821, 'ELECTRICITY': 15784, 'GAS': 11853}"
+one_transaction_label_each,PASS,"276,346 labels"
+transaction_amounts_positive,PASS,range 1.0 to 1157.2
+feature_transactions_before_cutoff,PASS,latest 2026-06-30
+energy_before_cutoff,PASS,latest 2026-06-01
+digital_before_cutoff,PASS,latest 2026-06-01
+one_label_per_customer_product,PASS,"20,000 of 20,000 expected"
+label_products_allowed,PASS,"['EV_FINANCE', 'GREEN_HOME_LOAN', 'PAPERLESS_BANKING', 'SOLAR_FINANCE']"
+takeup_dates_in_outcome_window,PASS,"positive labels: 3,283"
+negative_labels_have_no_date,PASS,no future date for negative labels
+no_label_columns_in_features,PASS,forbidden columns found: []
+future_products_excluded_from_features,PASS,future green-product flags absent
+customer_splits_disjoint,PASS,overlap: 0
+customer_splits_complete,PASS,"covered: 5,000 of 5,000"
+split_ratio,PASS,"{'train': 3500, 'validation': 750, 'test': 750}"
+energy_nonnegative,PASS,energy values are nonnegative
+digital_nonnegative,PASS,digital counts are nonnegative
+public_uci_seed_used,PASS,"seeded rows: 35,771"
+public_london_seed_used,PASS,"seeded rows: 54,060"
+missing_data_scenarios_present,PASS,"customers below complete: 2,089"
+existing_ev_scenario_present,PASS,existing EV customers: 524

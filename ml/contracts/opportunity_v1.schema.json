@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "opportunity_v1.schema.json",
+  "title": "Green Opportunity Contract v1.0.0",
+  "type": "object",
+  "required": ["schema_version", "request_id", "generated_at", "data_cutoff_date", "customer", "opportunity", "prediction", "eligibility", "impact", "recommendation", "explanation", "audit"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "request_id": {"type": "string"},
+    "generated_at": {"type": "string", "format": "date-time"},
+    "data_cutoff_date": {"type": "string", "format": "date"},
+    "customer": {"type": "object", "required": ["customer_id", "segment", "region", "data_completeness"]},
+    "opportunity": {"type": "object", "required": ["product_id", "product_code", "product_name", "category"], "properties": {"product_code": {"enum": ["EV_FINANCE", "GREEN_HOME_LOAN", "SOLAR_FINANCE", "PAPERLESS_BANKING"]}}},
+    "prediction": {"type": "object", "required": ["propensity", "confidence", "confidence_band", "model_version", "reason_codes"], "properties": {"propensity": {"type": "number", "minimum": 0, "maximum": 1}, "confidence": {"type": "number", "minimum": 0, "maximum": 1}, "confidence_band": {"enum": ["LOW", "MEDIUM", "HIGH"]}}},
+    "eligibility": {"type": "object", "required": ["status", "is_eligible", "rule_version", "decision_codes", "failed_rules", "missing_requirements", "requires_human_review"], "properties": {"status": {"enum": ["ELIGIBLE", "INELIGIBLE", "INSUFFICIENT_DATA", "MANUAL_REVIEW"]}, "is_eligible": {"type": ["boolean", "null"]}}},
+    "impact": {"type": "object", "required": ["status"], "properties": {"status": {"enum": ["AVAILABLE", "INSUFFICIENT_DATA", "NOT_APPLICABLE", "CALCULATION_ERROR"]}}},
+    "recommendation": {"type": "object", "required": ["decision", "priority_score", "priority_band", "action_code", "action_label", "customer_visible", "manager_visible"], "properties": {"decision": {"enum": ["RECOMMEND", "DO_NOT_RECOMMEND", "MANUAL_REVIEW"]}, "priority_score": {"type": ["number", "null"], "minimum": 0, "maximum": 1}, "priority_band": {"enum": ["LOW", "MEDIUM", "HIGH", null]}}},
+    "explanation": {"type": "object", "required": ["status", "headline", "customer_message", "manager_message", "verification", "llm"]},
+    "audit": {"type": "object", "required": ["pipeline_status", "component_versions", "warnings", "errors", "human_review_required"]}
+  },
+  "additionalProperties": false
+}

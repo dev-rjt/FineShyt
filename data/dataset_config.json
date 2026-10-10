@@ -1,0 +1,28 @@
+{
+  "dataset_version": "1.0.0",
+  "random_seed": 42,
+  "customer_count": 5000,
+  "feature_start_date": "2025-07-01",
+  "cutoff_date": "2026-06-30",
+  "outcome_window_days": 90,
+  "required_products": [
+    "EV_FINANCE",
+    "GREEN_HOME_LOAN",
+    "SOLAR_FINANCE",
+    "PAPERLESS_BANKING"
+  ],
+  "transaction_categories": [
+    "FUEL",
+    "ELECTRICITY",
+    "GAS",
+    "PUBLIC_TRANSPORT",
+    "HOME_IMPROVEMENT",
+    "AUTOMOTIVE",
+    "UTILITIES",
+    "OTHER"
+  ],
+  "public_source_usage": {
+    "uci_online_retail_ii": "Seeds real transaction descriptions and amount distribution for a bounded subset of OTHER transactions.",
+    "london_smart_meter": "Seeds the empirical distribution of monthly household electricity consumption."
+  }
+}

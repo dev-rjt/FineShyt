@@ -1,69 +1,39 @@
-# Glass-Box Green Insights (Megathon X, Problem Statement 1)
+# Glass-Box Green Insights - Integrated Final Branch
 
-An AI platform that finds green financial product opportunities from customer data, estimates the sustainability impact, and explains every recommendation. ML models make predictions, a rules-based carbon engine calculates impact, and the LLM only explains structured results.
+This integration branch combines the team's canonical dataset pipeline, trained
+ML artifacts, backend/API contract, deterministic product and impact engine, and
+Responsible AI controls. The production-style business application is under
+`product_app/`.
 
-**Current status:** the API and dashboard run on stub (fake) data that follows `docs/API_CONTRACT.md`. The real data, models, carbon engine and LLM layer replace the stubs one by one.
-
-## Run the API (Docker)
-
-You need Docker Desktop.
-
-```bash
-cp .env.example .env
-docker compose up --build
-```
-
-- API docs: http://localhost:8000/docs
-- Health check: http://localhost:8000/health
-
-To reset the database: `docker compose down -v`
-
-## Run the dashboard (Streamlit)
-
-You need Python 3.11. Keep the API running in another terminal.
+## Run the final application
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install -r app/requirements.txt
-python -m streamlit run app/app.py
+cd product_app
+./run_demo.sh
 ```
 
-Open http://localhost:8501. The dashboard reads from `http://localhost:8000`; set `API_BASE_URL` to use a different address.
+The customer and bank experiences open at <http://127.0.0.1:8502>. FastAPI
+documentation is available at <http://127.0.0.1:8000/docs>.
 
-## Where things live
+## Integrated components
 
-| Folder | What it holds |
+| Folder | Purpose |
 |---|---|
-| `src/api` | FastAPI app and the recommender |
-| `src/common` | Shared data models that mirror the contract |
-| `src/data` | Data generator and Customer 360 features |
-| `src/ml` | Transaction categoriser and propensity models |
-| `src/engine` | Product-rule gate and carbon engine |
-| `src/llm` | LLM insight layer, verifier and template fallback |
-| `app` | Streamlit dashboard |
-| `db` | Database schema |
-| `docs` | API contract and project documents |
+| `data/`, `src/data/` | Canonical 5,000-customer dataset, source adapters, validation and documentation |
+| `ml/` | Transaction classifier, four propensity models, saved artifacts, evaluation and contract output |
+| `src/engine/` | Deterministic product gate and impact calculations |
+| `responsible_ai/` | Privacy, leakage, bias, schema, scenario and audit controls |
+| `src/api/` | Original API contract implementation and integration reference |
+| `product_app/` | Final authenticated FastAPI + business/customer Streamlit product |
+| `integrations/engine_reference/` | Clean source imported from the independent engine branch |
 
-## Read these first
+## Rebuild the canonical pipeline
 
-- `docs/API_CONTRACT.md`: every endpoint and field. Change it before you change code.
-- `README_RAI.md`: how to run the Responsible AI controls against API opportunity records.
-- `responsible_ai/RESPONSIBLE_AI.md`: control coverage, limitations and ownership.
-- `ROLES.md`: who owns what.
-- `AGENTS.md`: rules for AI coding agents in this repo.
+```bash
+python3 src/data/build_dataset.py --customers 5000 --seed 42
+python3 src/data/validate_dataset.py
+python3 ml/run_project_dataset.py
+```
 
-## Working rules
-
-- Work on a feature branch and open a pull request into `main`.
-- Never commit `.env` or the `.venv` folder.
-- Every impact figure is an estimate with a stated method. Propensity is not eligibility.
-
-## Project documents
-
-1. [Official Lloyds problem statement](docs/01-lloyds-problem-statement.pdf)
-2. [Simplified problem statement and five-person team guide](docs/02-green-insights-team-guide.pdf)
-3. [Original shared JSON integration contract](docs/03-final-json-contract.pdf)
-
-The runnable app follows `docs/API_CONTRACT.md`. The original PDF contract is retained
-for project history, but it is not the runtime interface validated by the RAI package.
+All data is synthetic or based on bounded lawful public samples. Propensity is
+not eligibility. Sustainability figures are estimates from deterministic rules.

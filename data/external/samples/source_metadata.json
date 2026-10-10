@@ -1,0 +1,31 @@
+{
+  "uci_online_retail_ii": {
+    "landing_page": "https://archive.ics.uci.edu/dataset/502/online+retail+ii",
+    "download_url": "https://archive.ics.uci.edu/static/public/502/online%2Bretail%2Bii.zip",
+    "license": "CC BY 4.0",
+    "citation": "Chen, D. (2012). Online Retail II. UCI Machine Learning Repository. DOI: 10.24432/C5CG6D.",
+    "source_instances": 1067371,
+    "download_bytes": 45622418,
+    "sample_rows": 20000,
+    "sample_file": "data/external/samples/uci_online_retail_sample.csv",
+    "usage": "Seed real transaction description text and positive amount distributions for a bounded subset of synthetic OTHER-category bank transactions. Source customer IDs are irreversibly hashed and are not used as final customer IDs."
+  },
+  "london_smart_meter": {
+    "landing_page": "https://data.london.gov.uk/dataset/smartmeter-energy-consumption-data-in-london-households-vqm0d",
+    "url": "https://data.london.gov.uk/download/vqm0d/04feba67-f1a3-4563-98d0-f3071e3d56d1/Partitioned%20LCL%20Data.zip",
+    "license": "Creative Commons Attribution",
+    "remote_zip_bytes": 795722689,
+    "partition_member": "Small LCL Data/LCL-June2015v2_0.csv",
+    "raw_rows_read": 100000,
+    "aggregated_rows": 71,
+    "sample_file": "data/external/samples/london_smart_meter_monthly_sample.csv",
+    "usage": "Seed the empirical distribution of household monthly electricity consumption. Only hashed household keys and aggregated profiles are retained."
+  },
+  "uk_ghg_conversion_factors_2026": {
+    "landing_page": "https://www.gov.uk/government/publications/greenhouse-gas-reporting-conversion-factors-2026",
+    "source_file": "ghg-conversion-factors-2026-flat-format-revised.xlsx",
+    "publisher": "UK Department for Energy Security and Net Zero",
+    "source_year": 2026,
+    "usage": "Populate the versioned emissions-factor reference table with exact activity units and kg CO2e factors."
+  }
+}
