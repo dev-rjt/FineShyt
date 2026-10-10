@@ -21,7 +21,7 @@ PRODUCT_COLOURS = {
     "EV Finance": "#006A4D", "Green Home Loan": "#2B8C6B",
     "Solar Finance": "#E8A23A", "Paperless Banking": "#5E6AD2",
 }
-BANK_PAGES = ["Executive overview", "Customer directory", "Opportunity desk", "Impact planner", "Model governance", "Risk & controls"]
+BANK_PAGES = ["Executive overview", "Customer directory", "Opportunity desk", "Impact planner", "Model governance", "Data architecture", "Risk & controls"]
 CUSTOMER_PAGES = ["My green insights"]
 
 
@@ -740,7 +740,53 @@ elif page == "Model governance":
         st.dataframe(D["prods"], hide_index=True, width="stretch")
         st.caption("The catalogue defines the intended use case, eligibility gate and sustainability metric for each required opportunity.")
 
-# ----------------------------------------------------------------------------- 5. trust & governance
+# ----------------------------------------------------------------------------- 6. database and data lineage
+elif page == "Data architecture":
+    hero("Data architecture", "The tables behind every customer insight.",
+         "Inspect the live demo database, row counts, columns, keys and relationships without leaving the governed bank workspace.",
+         ["Normalised SQLite schema", "Foreign keys enforced", "Reproducible CSV seeds"])
+    catalog = api_get("/bank/data-catalog")
+    table_objects = [item for item in catalog["tables"] if item["kind"] == "table"]
+    relationships = [
+        {"Table": item["name"], "Column": key["column"], "References": f"{key['references_table']}.{key['references_column']}"}
+        for item in table_objects for key in item["foreign_keys"]
+    ]
+    metrics = st.columns(4)
+    metrics[0].metric("Database engine", catalog["engine"])
+    metrics[1].metric("Schema version", catalog["schema_version"])
+    metrics[2].metric("Tables", f"{len(table_objects):,}")
+    metrics[3].metric("Enforced relationships", f"{len(relationships):,}")
+    st.caption(f"Database: {catalog['database_file']} · built {catalog['built_at']} · {catalog['dataset_name']}")
+
+    overview, detail, schema_source = st.tabs(["Table inventory", "Column explorer", "SQL schema"])
+    with overview:
+        inventory = pd.DataFrame([
+            {"Object": item["name"], "Type": item["kind"].title(), "Rows": item["rows"],
+             "Columns": len(item["columns"]), "Foreign keys": len(item["foreign_keys"])}
+            for item in catalog["tables"]
+        ])
+        st.dataframe(inventory.style.format({"Rows": "{:,}"}), hide_index=True, width="stretch")
+        st.markdown("#### Relationships")
+        if relationships:
+            st.dataframe(pd.DataFrame(relationships), hide_index=True, width="stretch")
+        st.markdown("<div class='business-note'><b>Lineage:</b> versioned synthetic CSV sources are loaded into this database; FastAPI reads the database; the frontend reads only protected API responses. Training artifacts remain reproducible from the source datasets.</div>", unsafe_allow_html=True)
+    with detail:
+        selected_table = st.selectbox("Inspect table or view", [item["name"] for item in catalog["tables"]])
+        selected = next(item for item in catalog["tables"] if item["name"] == selected_table)
+        st.metric("Rows", f"{selected['rows']:,}")
+        column_frame = pd.DataFrame(selected["columns"]).rename(columns={
+            "position": "#", "column": "Column", "type": "SQL type", "nullable": "Nullable", "primary_key": "Primary key"
+        })
+        st.dataframe(column_frame, hide_index=True, width="stretch")
+        if selected["foreign_keys"]:
+            st.markdown("#### Foreign keys")
+            st.dataframe(pd.DataFrame(selected["foreign_keys"]), hide_index=True, width="stretch")
+    with schema_source:
+        schema_text = (Path(__file__).parent.parent / "db" / "schema.sql").read_text(encoding="utf-8")
+        st.caption("This is the exact executable schema used to build the running demo database.")
+        st.code(schema_text, language="sql", line_numbers=True)
+
+# ----------------------------------------------------------------------------- 7. trust & governance
 else:
     hero("Risk & controls", "A glass-box path from signal to action.",
          "Use this view to explain what each component is allowed to do, how unsafe outputs are blocked and where human oversight remains essential.",

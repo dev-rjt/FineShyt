@@ -8,6 +8,8 @@ api_port="${API_PORT:-8000}"
 web_port="${PORT:-8502}"
 export API_BASE_URL="${API_BASE_URL:-http://127.0.0.1:${api_port}}"
 
+python ../db/build_demo_db.py --quiet
+
 api_log="/tmp/verdant_hosted_api_$$.log"
 python -m uvicorn api:app --host 127.0.0.1 --port "$api_port" >"$api_log" 2>&1 &
 api_pid=$!

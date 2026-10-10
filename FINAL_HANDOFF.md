@@ -23,8 +23,8 @@ deploying anywhere shared.
 ## What happens after sign-in
 
 1. FastAPI verifies the credentials and creates a signed, role-scoped session.
-2. Customer data, products, vehicle, energy and digital activity are joined into
-   the Customer 360 feature row.
+2. FastAPI reads the normalised SQLite customer, product, vehicle, energy,
+   digital and transaction tables; these are joined into the Customer 360 feature row.
 3. The transaction classifier assigns exactly one sustainability category to
    each transaction; the feature pipeline aggregates those categories.
 4. Four trained propensity ensembles score EV Finance, Green Home Loan, Solar
@@ -43,7 +43,8 @@ deploying anywhere shared.
    authorised customer drill-down.
 9. The customer portal presents relevance, evidence, estimated annual impact,
    methodology and a clear action. The bank workspace adds portfolio opportunity,
-   segmentation, trends, impact planning, model governance and risk controls.
+   segmentation, trends, impact planning, model governance, a live database
+   catalogue and risk controls.
 
 ## Problem-statement check
 

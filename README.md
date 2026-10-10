@@ -43,6 +43,7 @@ two passwords in the Render environment before using the URL beyond judging.
 | `responsible_ai/` | Privacy, leakage, bias, schema, scenario and audit controls |
 | `src/api/` | Original API contract implementation and integration reference |
 | `src/llm/` | Grounded local LLM explanations, fact extraction and output verification |
+| `db/` | Executable SQLite schema, database builder, foreign keys, indexes and portfolio view |
 | `product_app/` | Final authenticated FastAPI + business/customer Streamlit product |
 | `integrations/engine_reference/` | Clean source imported from the independent engine branch |
 

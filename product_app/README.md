@@ -62,6 +62,7 @@ The redesigned prototype follows the challenge's complete decision path:
 - **Opportunity desk** — evidence, confidence, estimated impact, methodology, clear action and in-session response memory.
 - **Impact planner** — an inspectable deterministic baseline-vs-scenario calculator with no ML or LLM involvement.
 - **Model governance** — held-out performance, baseline comparisons, feature importance and descriptive subgroup monitoring.
+- **Data architecture** — live table inventory, row counts, columns, keys, relationships and executable SQL schema.
 - **Risk & controls** — responsibility boundaries, grounded-generation controls, scenario handling and honest limitations.
 
 `app.py` contains the experience. `insight_layer.py` constrains the LLM to a structured payload and rejects ungrounded numbers. `carbon_engine.py` owns all impact calculations.

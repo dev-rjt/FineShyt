@@ -3,7 +3,9 @@ from pathlib import Path
 import pandas as pd
 
 ROOT = Path(__file__).parent
+REPOSITORY_ROOT = ROOT.parent
 DATA_DIR, MODEL_DIR, OUT_DIR = ROOT / "data", ROOT / "models", ROOT / "outputs"
+DATABASE_PATH = REPOSITORY_ROOT / "db" / "verdant_demo.sqlite3"
 for d in (DATA_DIR, MODEL_DIR, OUT_DIR):
     d.mkdir(exist_ok=True)
 

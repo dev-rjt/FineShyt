@@ -8,13 +8,17 @@ from __future__ import annotations
 
 from functools import lru_cache
 import json
+from pathlib import Path
+import sqlite3
+import subprocess
+import sys
 
 import joblib
 import numpy as np
 import pandas as pd
 
 from carbon_engine import estimate_impact
-from config import DATA_DIR, MODEL_DIR, OUT_DIR, PRODUCTS, PRODUCT_IDS
+from config import DATABASE_PATH, MODEL_DIR, OUT_DIR, PRODUCTS, PRODUCT_IDS, REPOSITORY_ROOT
 from rules import eligibility
 
 
@@ -23,26 +27,87 @@ def _records(frame: pd.DataFrame) -> list[dict]:
     return clean.to_dict(orient="records")
 
 
+def ensure_database() -> Path:
+    """Create the local database when a fresh checkout starts for the first time."""
+    if not DATABASE_PATH.exists():
+        subprocess.run(
+            [sys.executable, str(REPOSITORY_ROOT / "db" / "build_demo_db.py"), "--quiet"],
+            check=True,
+        )
+    return DATABASE_PATH
+
+
+def connection() -> sqlite3.Connection:
+    database = ensure_database()
+    handle = sqlite3.connect(database)
+    handle.execute("PRAGMA foreign_keys = ON")
+    return handle
+
+
 @lru_cache(maxsize=1)
 def repository() -> dict:
-    recommendations = pd.read_csv(OUT_DIR / "recommendations_all.csv")
-    customers = pd.read_csv(DATA_DIR / "customers.csv")
+    with connection() as database:
+        recommendations = pd.read_sql_query("SELECT * FROM recommendations", database)
+        recommendations["recommend"] = recommendations["recommend"].astype(bool)
+        customers = pd.read_sql_query("SELECT * FROM customers", database)
+        digital_usage = pd.read_sql_query("SELECT * FROM digital_usage", database)
+        energy_usage = pd.read_sql_query("SELECT * FROM energy_usage", database)
+        emission_factors = pd.read_sql_query("SELECT * FROM emission_factors", database)
+        products = pd.read_sql_query(
+            "SELECT product_id, product_name AS product, category, eligibility, sustainability_metric FROM green_products",
+            database,
+        )
     return {
         "recommendations": recommendations,
         "customers": customers,
-        "digital_usage": pd.read_csv(DATA_DIR / "digital_usage.csv"),
-        "energy_usage": pd.read_csv(DATA_DIR / "energy_usage.csv"),
-        "emission_factors": pd.read_csv(DATA_DIR / "emissions_factors.csv"),
-        "products": pd.read_csv(DATA_DIR / "green_products.csv"),
+        "digital_usage": digital_usage,
+        "energy_usage": energy_usage,
+        "emission_factors": emission_factors,
+        "products": products,
         "evaluation": json.loads((OUT_DIR / "evaluation_report.json").read_text(encoding="utf-8")),
     }
 
 
 @lru_cache(maxsize=1)
 def scoring_assets() -> tuple[pd.DataFrame, dict]:
-    features = pd.read_csv(DATA_DIR / "customer_360.csv").set_index("customer_id")
+    with connection() as database:
+        features = pd.read_sql_query("SELECT * FROM customer_features", database).set_index("customer_id")
     models = joblib.load(MODEL_DIR / "propensity_models.joblib")
     return features, models
+
+
+@lru_cache(maxsize=1)
+def data_catalog() -> dict:
+    """Return safe database metadata for the bank-only architecture screen."""
+    with connection() as database:
+        objects = database.execute(
+            "SELECT name, type FROM sqlite_master "
+            "WHERE type IN ('table', 'view') AND name NOT LIKE 'sqlite_%' ORDER BY type, name"
+        ).fetchall()
+        tables = []
+        for name, object_type in objects:
+            columns = [
+                {"position": row[0] + 1, "column": row[1], "type": row[2], "nullable": not bool(row[3]), "primary_key": bool(row[5])}
+                for row in database.execute(f'PRAGMA table_info("{name}")').fetchall()
+            ]
+            foreign_keys = [
+                {"column": row[3], "references_table": row[2], "references_column": row[4]}
+                for row in database.execute(f'PRAGMA foreign_key_list("{name}")').fetchall()
+            ]
+            row_count = database.execute(f'SELECT COUNT(*) FROM "{name}"').fetchone()[0]
+            tables.append({"name": name, "kind": object_type, "rows": row_count, "columns": columns, "foreign_keys": foreign_keys})
+        metadata = database.execute(
+            "SELECT schema_version, created_at, dataset_name, customer_count FROM schema_metadata LIMIT 1"
+        ).fetchone()
+    return {
+        "engine": "SQLite 3",
+        "database_file": DATABASE_PATH.name,
+        "schema_version": metadata[0],
+        "built_at": metadata[1],
+        "dataset_name": metadata[2],
+        "customer_count": metadata[3],
+        "tables": tables,
+    }
 
 
 def customer_profile(customer_id: str) -> dict | None:
@@ -135,16 +200,17 @@ def feature_weights(product: str) -> list[dict]:
 
 def health_details() -> dict:
     data = repository()
-    feature_file = DATA_DIR / "customer_360.csv"
+    database_file = ensure_database()
     model_file = MODEL_DIR / "propensity_models.joblib"
     return {
         "status": "ok",
         "customers": int(len(data["customers"])),
         "opportunity_records": int(len(data["recommendations"])),
-        "live_scoring_ready": feature_file.exists() and model_file.exists(),
+        "live_scoring_ready": database_file.exists() and model_file.exists(),
         "components": {
             "frontend": "streamlit",
             "backend": "fastapi",
+            "database": "sqlite_normalized_schema",
             "ml": "lightgbm_ensemble",
             "rules": "product_gate_v1",
             "impact": "deterministic_carbon_engine",

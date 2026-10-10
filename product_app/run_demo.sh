@@ -19,6 +19,8 @@ set -a
 source .env
 set +a
 
+.venv/bin/python ../db/build_demo_db.py --quiet
+
 api_log="/tmp/verdant_api_$$.log"
 .venv/bin/python -m uvicorn api:app --host 127.0.0.1 --port "${API_PORT:-8000}" >"$api_log" 2>&1 &
 api_pid=$!

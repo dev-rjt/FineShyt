@@ -12,7 +12,7 @@ import time
 from fastapi import Depends, FastAPI, Header, HTTPException
 from pydantic import BaseModel
 
-from api_service import bank_bootstrap, customer_profile, feature_weights, health_details, score_customer
+from api_service import bank_bootstrap, customer_profile, data_catalog, feature_weights, health_details, score_customer
 from auth import Principal, authenticate, credentials_ready, load_local_env
 
 load_local_env(Path(__file__).with_name(".env"))
@@ -146,3 +146,8 @@ def get_feature_weights(product: str, _: dict = Depends(require_bank)):
         return {"items": feature_weights(product)}
     except KeyError as exc:
         raise HTTPException(status_code=404, detail="Unknown product") from exc
+
+
+@app.get("/bank/data-catalog")
+def get_data_catalog(_: dict = Depends(require_bank)):
+    return data_catalog()
