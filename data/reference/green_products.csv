@@ -1,0 +1,5 @@
+product_id,product_code,product_name,category,intended_use,sustainability_metric,active
+GP01,EV_FINANCE,EV Finance,TRANSPORT,Finance purchase of an electric vehicle,POTENTIAL_CO2E_AVOIDED,True
+GP02,GREEN_HOME_LOAN,Green Home Loan,HOME_RETROFIT,"Finance insulation, efficient heating, glazing or heat-pump upgrades",POTENTIAL_ENERGY_AND_CO2E_REDUCTION,True
+GP03,SOLAR_FINANCE,Solar Finance,RENEWABLE_ENERGY,Finance residential solar PV installation,POTENTIAL_GRID_ELECTRICITY_DISPLACED,True
+GP04,PAPERLESS_BANKING,Paperless Banking,DIGITAL,Replace paper statements with digital statements,PAPER_AND_DIGITAL_ADOPTION,True

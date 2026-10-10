@@ -1,0 +1,197 @@
+{
+  "dataset_version": "1.0.0",
+  "overall_status": "PASS",
+  "counts": {
+    "customers": 5000,
+    "transactions": 276346,
+    "products": 16937,
+    "vehicles": 3416,
+    "energy_rows": 54060,
+    "digital_rows": 57684,
+    "customer_360_rows": 5000,
+    "product_label_rows": 20000
+  },
+  "takeup_rates": {
+    "EV_FINANCE": 0.098,
+    "GREEN_HOME_LOAN": 0.119,
+    "PAPERLESS_BANKING": 0.3272,
+    "SOLAR_FINANCE": 0.1124
+  },
+  "transaction_category_counts": {
+    "AUTOMOTIVE": 15821,
+    "ELECTRICITY": 15784,
+    "FUEL": 22433,
+    "GAS": 11853,
+    "HOME_IMPROVEMENT": 17297,
+    "OTHER": 149028,
+    "PUBLIC_TRANSPORT": 20913,
+    "UTILITIES": 23217
+  },
+  "missingness": {
+    "annual_mileage": 0.3638,
+    "energy_profile": 0.099,
+    "digital_profile": 0.0386
+  },
+  "checks": [
+    {
+      "check": "customers_unique",
+      "status": "PASS",
+      "detail": "5,000 customer rows"
+    },
+    {
+      "check": "transactions_unique",
+      "status": "PASS",
+      "detail": "276,346 transaction rows"
+    },
+    {
+      "check": "vehicles_unique",
+      "status": "PASS",
+      "detail": "3,416 vehicle rows"
+    },
+    {
+      "check": "customer_360_one_per_customer",
+      "status": "PASS",
+      "detail": "5,000 feature rows"
+    },
+    {
+      "check": "transactions_foreign_keys",
+      "status": "PASS",
+      "detail": "unknown customer IDs: 0"
+    },
+    {
+      "check": "products_foreign_keys",
+      "status": "PASS",
+      "detail": "unknown customer IDs: 0"
+    },
+    {
+      "check": "vehicles_foreign_keys",
+      "status": "PASS",
+      "detail": "unknown customer IDs: 0"
+    },
+    {
+      "check": "energy_foreign_keys",
+      "status": "PASS",
+      "detail": "unknown customer IDs: 0"
+    },
+    {
+      "check": "digital_foreign_keys",
+      "status": "PASS",
+      "detail": "unknown customer IDs: 0"
+    },
+    {
+      "check": "labels_foreign_keys",
+      "status": "PASS",
+      "detail": "unknown customer IDs: 0"
+    },
+    {
+      "check": "transaction_categories_allowed",
+      "status": "PASS",
+      "detail": "['AUTOMOTIVE', 'ELECTRICITY', 'FUEL', 'GAS', 'HOME_IMPROVEMENT', 'OTHER', 'PUBLIC_TRANSPORT', 'UTILITIES']"
+    },
+    {
+      "check": "all_categories_present",
+      "status": "PASS",
+      "detail": "{'OTHER': 149028, 'UTILITIES': 23217, 'FUEL': 22433, 'PUBLIC_TRANSPORT': 20913, 'HOME_IMPROVEMENT': 17297, 'AUTOMOTIVE': 15821, 'ELECTRICITY': 15784, 'GAS': 11853}"
+    },
+    {
+      "check": "one_transaction_label_each",
+      "status": "PASS",
+      "detail": "276,346 labels"
+    },
+    {
+      "check": "transaction_amounts_positive",
+      "status": "PASS",
+      "detail": "range 1.0 to 1157.2"
+    },
+    {
+      "check": "feature_transactions_before_cutoff",
+      "status": "PASS",
+      "detail": "latest 2026-06-30"
+    },
+    {
+      "check": "energy_before_cutoff",
+      "status": "PASS",
+      "detail": "latest 2026-06-01"
+    },
+    {
+      "check": "digital_before_cutoff",
+      "status": "PASS",
+      "detail": "latest 2026-06-01"
+    },
+    {
+      "check": "one_label_per_customer_product",
+      "status": "PASS",
+      "detail": "20,000 of 20,000 expected"
+    },
+    {
+      "check": "label_products_allowed",
+      "status": "PASS",
+      "detail": "['EV_FINANCE', 'GREEN_HOME_LOAN', 'PAPERLESS_BANKING', 'SOLAR_FINANCE']"
+    },
+    {
+      "check": "takeup_dates_in_outcome_window",
+      "status": "PASS",
+      "detail": "positive labels: 3,283"
+    },
+    {
+      "check": "negative_labels_have_no_date",
+      "status": "PASS",
+      "detail": "no future date for negative labels"
+    },
+    {
+      "check": "no_label_columns_in_features",
+      "status": "PASS",
+      "detail": "forbidden columns found: []"
+    },
+    {
+      "check": "future_products_excluded_from_features",
+      "status": "PASS",
+      "detail": "future green-product flags absent"
+    },
+    {
+      "check": "customer_splits_disjoint",
+      "status": "PASS",
+      "detail": "overlap: 0"
+    },
+    {
+      "check": "customer_splits_complete",
+      "status": "PASS",
+      "detail": "covered: 5,000 of 5,000"
+    },
+    {
+      "check": "split_ratio",
+      "status": "PASS",
+      "detail": "{'train': 3500, 'validation': 750, 'test': 750}"
+    },
+    {
+      "check": "energy_nonnegative",
+      "status": "PASS",
+      "detail": "energy values are nonnegative"
+    },
+    {
+      "check": "digital_nonnegative",
+      "status": "PASS",
+      "detail": "digital counts are nonnegative"
+    },
+    {
+      "check": "public_uci_seed_used",
+      "status": "PASS",
+      "detail": "seeded rows: 35,771"
+    },
+    {
+      "check": "public_london_seed_used",
+      "status": "PASS",
+      "detail": "seeded rows: 54,060"
+    },
+    {
+      "check": "missing_data_scenarios_present",
+      "status": "PASS",
+      "detail": "customers below complete: 2,089"
+    },
+    {
+      "check": "existing_ev_scenario_present",
+      "status": "PASS",
+      "detail": "existing EV customers: 524"
+    }
+  ]
+}

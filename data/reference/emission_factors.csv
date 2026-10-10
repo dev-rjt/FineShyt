@@ -1,0 +1,6 @@
+factor_id,activity,activity_unit,factor_value,factor_unit,scope,source,source_year,factor_version
+UK_PETROL_2026,PETROL_COMBUSTION,litres,2.35372,kg CO2e,Scope 1,https://www.gov.uk/government/publications/greenhouse-gas-reporting-conversion-factors-2026,2026,2026.1
+UK_DIESEL_2026,DIESEL_COMBUSTION,litres,2.66155,kg CO2e,Scope 1,https://www.gov.uk/government/publications/greenhouse-gas-reporting-conversion-factors-2026,2026,2026.1
+UK_NATURAL_GAS_2026,NATURAL_GAS_GROSS_CV,kWh,0.18231,kg CO2e,Scope 1,https://www.gov.uk/government/publications/greenhouse-gas-reporting-conversion-factors-2026,2026,2026.1
+UK_GRID_ELECTRICITY_2026,GRID_ELECTRICITY_GENERATED,kWh,0.13096,kg CO2e,Scope 2,https://www.gov.uk/government/publications/greenhouse-gas-reporting-conversion-factors-2026,2026,2026.1
+UK_ELECTRICITY_TD_2026,GRID_TRANSMISSION_DISTRIBUTION,kWh,0.01299,kg CO2e,Scope 3,https://www.gov.uk/government/publications/greenhouse-gas-reporting-conversion-factors-2026,2026,2026.1

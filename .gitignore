@@ -2,6 +2,8 @@
 .venv/
 __pycache__/
 *.py[cod]
+*.pyc
+.pytest_cache/
 
 # Secrets
 .env
@@ -19,3 +21,11 @@ dist/
 # Data and generated files
 data/raw/
 data/processed/
+data/external/cache/
+data/reports/previews/
+data/reports/*.inspect.ndjson
+data/reports/workbook_*.ndjson
+
+# Local build artifacts
+tmp/
+.artifact/
