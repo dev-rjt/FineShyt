@@ -1,0 +1,41 @@
+{
+  "eligibility": {
+    "status": "MANUAL_REVIEW",
+    "is_eligible": null,
+    "rule_version": "ev_eligibility_v1.0.0",
+    "decision_codes": [
+      {
+        "code": "ANNUAL_MILEAGE_MISSING",
+        "result": "UNKNOWN",
+        "message": "Annual mileage is not available."
+      }
+    ],
+    "failed_rules": [],
+    "missing_requirements": [
+      "annual_mileage"
+    ],
+    "requires_human_review": true
+  },
+  "impact": {
+    "status": "INSUFFICIENT_DATA",
+    "method_id": "EV_AVOIDED_EMISSIONS_V1",
+    "primary_metric": null,
+    "supporting_metrics": [],
+    "assumptions": [],
+    "emission_factors": [],
+    "calculation_inputs": {
+      "annual_mileage": null,
+      "annual_fuel_litres": null,
+      "estimated_ev_kwh": null
+    }
+  },
+  "recommendation": {
+    "decision": "MANUAL_REVIEW",
+    "priority_score": null,
+    "priority_band": null,
+    "action_code": "REQUEST_MILEAGE_DATA",
+    "action_label": "Request mileage information",
+    "customer_visible": false,
+    "manager_visible": true
+  }
+}
