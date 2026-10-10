@@ -1,0 +1,5 @@
+product_id,product,category,eligibility,sustainability_metric
+GP01,EV Finance,Transport,"Rules: vehicle owner, non-EV, age 18-78, no existing GP01",kg CO2e avoided / yr (tailpipe vs grid)
+GP02,Green Home Loan,Home,Rules: home owner or mortgage holder; retrofit / heat-pump / insulation use case,kg CO2e avoided / yr (gas+elec reduction)
+GP03,Solar Finance,Home,Rules: home owner; PV installation use case only (generation assets),kg CO2e avoided / yr (grid displacement)
+GP04,Paperless Banking,Digital,Rules: paper statement share > 15%,paper statements avoided / yr (reported separately from CO2e)

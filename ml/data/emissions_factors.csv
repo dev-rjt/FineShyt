@@ -1,0 +1,9 @@
+activity,unit,kg_co2e_per_unit,source
+grid_electricity,kWh,0.207,UK DESNZ/DEFRA GHG conversion factors (~2023/24 grid avg) - VERIFY latest
+natural_gas,kWh,0.183,UK DESNZ/DEFRA GHG conversion factors (gross CV) - VERIFY latest
+car_petrol,km,0.17,"UK DESNZ avg petrol car, approx - VERIFY latest"
+car_diesel,km,0.171,"UK DESNZ avg diesel car, approx - VERIFY latest"
+car_hybrid,km,0.12,"UK DESNZ hybrid car, approx - VERIFY latest"
+ev_energy_intensity,kWh/km,0.2,Typical BEV consumption assumption (not a CO2e factor)
+paper_statement,statement,0.025,ASSUMPTION: ~3 A4 sheets + envelope; replace with sourced LCA value
+pv_yield,kWh/kWp/yr,900.0,Typical UK PV yield assumption (not a CO2e factor)
