@@ -15,6 +15,10 @@ cd product_app
 The customer and bank experiences open at <http://127.0.0.1:8502>. FastAPI
 documentation is available at <http://127.0.0.1:8000/docs>.
 
+Demo sign-in: bank `bank_manager` / `GreenBank@2026`; customer `C12558` /
+`GreenCustomer@2026`. See [FINAL_HANDOFF.md](FINAL_HANDOFF.md) for the complete
+problem-statement walkthrough, rebuild commands and prototype boundaries.
+
 ## Integrated components
 
 | Folder | Purpose |

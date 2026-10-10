@@ -77,6 +77,14 @@ def validate_record(
     """
     if not isinstance(record, dict):
         return ["$: record must be an object"]
+    # The merged repository retains both team API generations. The latest LLM
+    # branch consumes the nested v1 pipeline contract, while the FastAPI branch
+    # serves the flat product opportunity contract. Dispatch explicitly by
+    # structure so neither contract is silently coerced into the other.
+    nested_sections = {"prediction", "eligibility", "recommendation", "explanation", "audit"}
+    if nested_sections <= set(record):
+        from src.llm.contract_checks import validate_record as validate_nested_record
+        return validate_nested_record(record, schema=schema, before_llm=before_llm)
     schema = schema if schema is not None else json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
     violations = _schema_violations(record, schema)
     if violations:

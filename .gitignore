@@ -1,5 +1,6 @@
 # Python environments and caches
 .venv/
+.venv
 .venv-rai/
 __pycache__/
 *.py[cod]
@@ -11,6 +12,8 @@ caches/
 # Secrets and local settings
 .env
 .env.*
+!.env.example
+!**/.env.example
 .DS_Store
 .vscode/
 

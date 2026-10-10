@@ -1,0 +1,11 @@
+# Registry owned by Person 2 — read-only in rules/carbon module
+version: reason_codes_v1
+codes:
+  - HIGH_FUEL_SPEND
+  - HIGH_MILEAGE
+  - HIGH_ENERGY_USE
+  - LOW_DIGITAL_ADOPTION
+  - HOMEOWNER
+  - EV_UPGRADE_CANDIDATE
+  - SOLAR_CANDIDATE
+  - INSULATION_CANDIDATE

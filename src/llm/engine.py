@@ -6,9 +6,8 @@ import hashlib
 import json
 from threading import Lock
 
-from responsible_ai.contract_checks import validate_record
-
 from .facts import build_catalog
+from .contract_checks import validate_record
 from .prompts import PROMPT_VERSION, VERIFIER_VERSION, messages, response_schema
 from .verifier import render, template_plan, verify_plan
 
