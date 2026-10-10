@@ -1,0 +1,21 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+
+# Secrets
+.env
+
+# Mac
+.DS_Store
+
+# Editors
+.vscode/
+
+# Frontend
+node_modules/
+dist/
+
+# Data and generated files
+data/raw/
+data/processed/
