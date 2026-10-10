@@ -1,0 +1,17 @@
+{
+  "customer_id": "C10001",
+  "cutoff_date": "2026-09-30",
+  "outcome_window_days": 90,
+  "country": "GB",
+  "age_band": "35-44",
+  "account_status": "ACTIVE",
+  "green_offers_opt_out": false,
+  "vulnerability_flag": false,
+  "has_arrears": false,
+  "affordability_prescreen": "PASS",
+  "held_products": [],
+  "vehicle_fuel_type": "PETROL",
+  "annual_distance": 12000,
+  "annual_distance_unit": "km",
+  "annual_distance_source": "DECLARED"
+}

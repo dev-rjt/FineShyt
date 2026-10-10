@@ -1,0 +1,13 @@
+assumption_id,low,central,high,unit,source_name,status,notes
+EV_KWH_PER_KM,0.17,0.19,0.22,kWh/km,TO_CITE,DEV_ILLUSTRATIVE,"Cross-check against DESNZ SECR kWh/km table"
+FUEL_PRICE_PER_LITRE,1.30,1.45,1.60,GBP/L,TO_CITE,DEV_ILLUSTRATIVE,"Only for spend-derived distance"
+ICE_KM_PER_LITRE,11,13,15,km/L,TO_CITE,DEV_ILLUSTRATIVE,"Only for spend-derived distance"
+SOLAR_YIELD,750,850,950,kWh/kWp/yr,TO_CITE,DEV_ILLUSTRATIVE,"UK typical range"
+SOLAR_SELF_CONSUMPTION,0.30,0.40,0.50,fraction,TO_CITE,DEV_ILLUSTRATIVE,"No battery"
+SOLAR_SIZE_MIN,2,2,2,kWp,TO_CITE,DEV_ILLUSTRATIVE,"Sizing clamp"
+SOLAR_SIZE_MAX,6,6,6,kWp,TO_CITE,DEV_ILLUSTRATIVE,"Sizing clamp"
+BOILER_EFFICIENCY,0.80,0.88,0.92,fraction,TO_CITE,DEV_ILLUSTRATIVE,""
+HP_SCOP,2.5,3.0,3.5,ratio,TO_CITE,DEV_ILLUSTRATIVE,""
+HEATING_REDUCTION_LOFT_WALL,0.10,0.20,0.30,fraction,TO_CITE,DEV_ILLUSTRATIVE,"Fraction of space-heating gas saved"
+SHEETS_PER_STATEMENT,1,2,3,sheet,TO_CITE,DEV_ILLUSTRATIVE,"Use measured pages if available"
+SHEET_MASS_KG,0.00499,0.00499,0.00499,kg/sheet,Calculated: A4 210x297mm x 80gsm,DERIVED,"0.06237 m2 x 0.080 kg/m2"

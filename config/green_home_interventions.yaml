@@ -1,0 +1,6 @@
+version: green_home_v1
+interventions:
+  - id: HEAT_PUMP
+    description: Air-source heat pump replacing gas boiler space heating
+  - id: LOFT_AND_WALL_INSULATION
+    description: Loft and wall insulation reducing space-heating demand

@@ -1,0 +1,33 @@
+rule_version: rules_v1.0.0
+data_max_age_days: 90
+outcome_window_days: 90
+ev_replacement_min_age_years: 8
+ev_replacement_max_finance_months: 6
+min_electricity_kwh_year_solar: 1500
+min_months_electricity_solar: 6
+min_months_energy_green_home: 12
+min_digital_logins_90d: 6
+
+min_propensity: 0.50
+min_confidence: 0.50
+min_propensity_by_product: {}
+min_confidence_by_product: {}
+
+impact_norm_floor: 0.10
+
+allow_spend_derived_distance: true
+enable_paper_co2e: false
+
+input_quality:
+  ODOMETER: 0.05
+  DECLARED: 0.10
+  SPEND_DERIVED: 0.25
+  ANNUALISED_PARTIAL: 0.15
+  FULL_12M: 0.0
+
+solar_size_min_kwp: 2
+solar_size_max_kwp: 6
+
+green_home:
+  heat_pump_min_heating_gas_kwh: 3000
+  insulation_min_heating_gas_kwh: 1500

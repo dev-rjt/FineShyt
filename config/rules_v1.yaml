@@ -1,0 +1,338 @@
+version: rules_v1.0.0
+criteria_source_prefix: product_catalogue_v1
+
+rules:
+  - id: G01
+    products: [EV_FINANCE, GREEN_HOME, SOLAR_FINANCE, PAPERLESS_BANKING]
+    severity: HARD_BLOCK
+    description: Customer must be 18 or over
+    when_fails_if:
+      field: age_band
+      op: eq
+      value: "<18"
+    on_missing: PASS
+    fail_code: EL_FAIL_UNDER_18
+    pass_code: EL_PASS_ADULT
+    criteria_source: product_catalogue_v1:GLOBAL:age_minimum
+
+  - id: G02
+    products: [EV_FINANCE, GREEN_HOME, SOLAR_FINANCE, PAPERLESS_BANKING]
+    severity: HARD_BLOCK
+    description: Green offers opt-out prevents automated marketing
+    when_fails_if:
+      field: green_offers_opt_out
+      op: is_true
+    on_missing: PASS
+    fail_code: EL_FAIL_OPTED_OUT
+    pass_code: EL_PASS_NOT_OPTED_OUT
+    criteria_source: product_catalogue_v1:GLOBAL:marketing_opt_out
+
+  - id: G03
+    products: [EV_FINANCE, GREEN_HOME, SOLAR_FINANCE, PAPERLESS_BANKING]
+    severity: HARD_BLOCK
+    description: Current account required for service access
+    when_fails_if:
+      field: has_current_account
+      op: eq
+      value: 0
+    on_missing: MISSING
+    fail_code: EL_FAIL_ACCOUNT_INACTIVE
+    pass_code: EL_PASS_ACCOUNT_ACTIVE
+    criteria_source: product_catalogue_v1:GLOBAL:current_account
+
+  - id: G04
+    products: [EV_FINANCE, GREEN_HOME, SOLAR_FINANCE, PAPERLESS_BANKING]
+    severity: REQUIRES_DATA
+    description: Data must not be stale relative to run date
+    when_fails_if:
+      field: _data_stale
+      op: is_true
+    on_missing: MISSING
+    fail_code: EL_MISSING_STALE_DATA
+    pass_code: EL_PASS_DATA_FRESH
+    criteria_source: product_catalogue_v1:GLOBAL:data_freshness
+
+  - id: G05
+    products: [EV_FINANCE, GREEN_HOME, SOLAR_FINANCE, PAPERLESS_BANKING]
+    severity: HARD_BLOCK
+    description: Must not already hold this product
+    when_fails_if:
+      field: _holds_target_product
+      op: is_true
+    on_missing: PASS
+    fail_code: EL_FAIL_ALREADY_HOLDS_PRODUCT
+    pass_code: EL_PASS_NOT_HELD
+    criteria_source: product_catalogue_v1:GLOBAL:product_not_held
+
+  - id: G06
+    products: [EV_FINANCE, GREEN_HOME, SOLAR_FINANCE, PAPERLESS_BANKING]
+    severity: CONDITION
+    description: Route to human review for vulnerable customers
+    when_fails_if:
+      field: vulnerability_flag
+      op: is_true
+    on_missing: PASS
+    fail_code: EL_COND_HUMAN_REVIEW
+    pass_code: EL_PASS_NO_HUMAN_REVIEW
+    condition_text: Route to human review; no automated customer message
+    criteria_source: product_catalogue_v1:GLOBAL:vulnerability_review
+
+  - id: L01
+    products: [EV_FINANCE, GREEN_HOME, SOLAR_FINANCE]
+    severity: HARD_BLOCK
+    description: No arrears
+    when_fails_if:
+      field: has_arrears
+      op: is_true
+    on_missing: PASS
+    fail_code: EL_FAIL_ARREARS
+    pass_code: EL_PASS_NO_ARREARS
+    criteria_source: product_catalogue_v1:LENDING:no_arrears
+
+  - id: L02
+    products: [EV_FINANCE, GREEN_HOME, SOLAR_FINANCE]
+    severity: HARD_BLOCK
+    description: Affordability prescreen must pass
+    when_fails_if:
+      field: affordability_prescreen
+      op: eq
+      value: FAIL
+    on_missing: PASS
+    fail_code: EL_FAIL_AFFORDABILITY_PRESCREEN
+    pass_code: EL_PASS_AFFORDABILITY
+    criteria_source: product_catalogue_v1:LENDING:affordability
+
+  - id: L03
+    products: [EV_FINANCE, GREEN_HOME, SOLAR_FINANCE]
+    severity: CONDITION
+    description: Affordability prescreen requires review
+    when_fails_if:
+      field: affordability_prescreen
+      op: eq
+      value: REFER
+    on_missing: PASS
+    fail_code: EL_COND_AFFORDABILITY_REFER
+    pass_code: EL_PASS_AFFORDABILITY_OK
+    condition_text: Affordability review required
+    criteria_source: product_catalogue_v1:LENDING:affordability_refer
+
+  - id: L04
+    products: [EV_FINANCE, GREEN_HOME, SOLAR_FINANCE]
+    severity: CONDITION
+    description: Subject to eligibility and credit checks
+    when_fails_if:
+      field: has_current_account
+      op: not_null
+    on_missing: PASS
+    fail_code: EL_COND_SUBJECT_TO_CHECKS
+    pass_code: EL_PASS_CHECKS_OK
+    condition_text: Subject to eligibility and credit checks
+    criteria_source: product_catalogue_v1:LENDING:credit_checks
+
+  - id: EV01
+    products: [EV_FINANCE]
+    severity: HARD_BLOCK
+    description: Existing EV without replacement case
+    when_fails_if:
+      all:
+        - {field: has_existing_ev, op: is_true}
+        - not:
+            any:
+              - {field: vehicle_age_years, op: gte, value: "$thr.ev_replacement_min_age_years"}
+              - {field: vehicle_finance_months_remaining, op: lte, value: "$thr.ev_replacement_max_finance_months"}
+    on_missing: PASS
+    fail_code: EL_FAIL_EXISTING_EV_NO_REPLACEMENT
+    pass_code: EL_PASS_EV_OWNERSHIP
+    criteria_source: product_catalogue_v1:EV_FINANCE:no_existing_ev
+
+  - id: EV01B
+    products: [EV_FINANCE]
+    severity: CONDITION
+    description: Replacement case for existing EV owner
+    when_fails_if:
+      all:
+        - {field: has_existing_ev, op: is_true}
+        - any:
+            - {field: vehicle_age_years, op: gte, value: "$thr.ev_replacement_min_age_years"}
+            - {field: vehicle_finance_months_remaining, op: lte, value: "$thr.ev_replacement_max_finance_months"}
+    on_missing: PASS
+    fail_code: EL_COND_EV_REPLACEMENT_CASE
+    pass_code: EL_PASS_EV_REPLACEMENT_OK
+    condition_text: Existing EV replacement case
+    criteria_source: product_catalogue_v1:EV_FINANCE:replacement_case
+
+  - id: EV02
+    products: [EV_FINANCE]
+    severity: REQUIRES_DATA
+    description: Vehicle baseline required for impact/eligibility
+    when_fails_if:
+      all:
+        - {field: has_vehicle, op: is_false}
+        - {field: vehicle_fuel_type, op: is_null}
+    on_missing: MISSING
+    fail_code: EL_MISSING_VEHICLE_BASELINE
+    pass_code: EL_PASS_VEHICLE_BASELINE
+    criteria_source: product_catalogue_v1:EV_FINANCE:vehicle_baseline
+
+  - id: EV03
+    products: [EV_FINANCE]
+    severity: CONDITION
+    description: Vehicle type unverified when yearly mileage is present
+    when_fails_if:
+      all:
+        - {field: vehicle_fuel_type, op: is_null}
+        - {field: annual_mileage, op: gt, value: 0}
+    on_missing: PASS
+    fail_code: EL_COND_VEHICLE_UNVERIFIED
+    pass_code: EL_PASS_VEHICLE_KNOWN
+    condition_text: Vehicle type unverified
+    criteria_source: product_catalogue_v1:EV_FINANCE:vehicle_unverified
+
+  - id: EV04
+    products: [EV_FINANCE]
+    severity: CONDITION
+    description: PHEV upgrade path
+    when_fails_if:
+      field: vehicle_fuel_type
+      op: eq
+      value: PHEV
+    on_missing: PASS
+    fail_code: EL_COND_PHEV_UPGRADE
+    pass_code: EL_PASS_NOT_PHEV
+    condition_text: PHEV upgrade to full BEV
+    criteria_source: product_catalogue_v1:EV_FINANCE:phev_upgrade
+
+  - id: GH01
+    products: [GREEN_HOME]
+    severity: HARD_BLOCK
+    description: Must be homeowner
+    when_fails_if:
+      field: home_owner
+      op: is_false
+    on_missing: MISSING
+    fail_code: EL_FAIL_NOT_HOMEOWNER
+    pass_code: EL_PASS_HOMEOWNER
+    criteria_source: product_catalogue_v1:GREEN_HOME:homeowner
+
+  - id: GH02
+    products: [GREEN_HOME]
+    severity: REQUIRES_DATA
+    description: Twelve months energy history
+    when_fails_if:
+      field: _insufficient_energy_history_gh
+      op: is_true
+    on_missing: MISSING
+    fail_code: EL_MISSING_ENERGY_HISTORY
+    pass_code: EL_PASS_ENERGY_HISTORY
+    criteria_source: product_catalogue_v1:GREEN_HOME:energy_history
+
+  - id: GH03
+    products: [GREEN_HOME]
+    severity: HARD_BLOCK
+    description: No applicable intervention
+    when_fails_if:
+      field: _no_green_home_intervention
+      op: is_true
+    on_missing: PASS
+    fail_code: EL_FAIL_NO_APPLICABLE_INTERVENTION
+    pass_code: EL_PASS_INTERVENTION_AVAILABLE
+    criteria_source: product_catalogue_v1:GREEN_HOME:intervention
+
+  - id: SO01
+    products: [SOLAR_FINANCE]
+    severity: HARD_BLOCK
+    description: Must be homeowner
+    when_fails_if:
+      field: home_owner
+      op: is_false
+    on_missing: MISSING
+    fail_code: EL_FAIL_NOT_HOMEOWNER
+    pass_code: EL_PASS_HOMEOWNER
+    criteria_source: product_catalogue_v1:SOLAR_FINANCE:homeowner
+
+  - id: SO02
+    products: [SOLAR_FINANCE]
+    severity: HARD_BLOCK
+    description: Must not already have solar
+    when_fails_if:
+      field: has_solar
+      op: is_true
+    on_missing: MISSING
+    fail_code: EL_FAIL_EXISTING_SOLAR
+    pass_code: EL_PASS_NO_SOLAR
+    criteria_source: product_catalogue_v1:SOLAR_FINANCE:no_existing_solar
+
+  - id: SO03
+    products: [SOLAR_FINANCE]
+    severity: HARD_BLOCK
+    description: Flat roof unsuitable
+    when_fails_if:
+      field: property_type
+      op: eq
+      value: RENTED_OR_UNKNOWN
+    on_missing: PASS
+    fail_code: EL_FAIL_ROOF_UNSUITABLE
+    pass_code: EL_PASS_ROOF_TYPE
+    criteria_source: product_catalogue_v1:SOLAR_FINANCE:roof_type
+
+  - id: SO04
+    products: [SOLAR_FINANCE]
+    severity: REQUIRES_DATA
+    description: Electricity history for solar
+    when_fails_if:
+      field: _insufficient_electricity_solar
+      op: is_true
+    on_missing: MISSING
+    fail_code: EL_MISSING_ELECTRICITY_HISTORY
+    pass_code: EL_PASS_ELECTRICITY_HISTORY
+    criteria_source: product_catalogue_v1:SOLAR_FINANCE:electricity_history
+
+  - id: SO05
+    products: [SOLAR_FINANCE]
+    severity: HARD_BLOCK
+    description: Minimum annual electricity use
+    when_fails_if:
+      field: _low_electricity_solar
+      op: is_true
+    on_missing: PASS
+    fail_code: EL_FAIL_LOW_ELECTRICITY_USE
+    pass_code: EL_PASS_ELECTRICITY_LEVEL
+    criteria_source: product_catalogue_v1:SOLAR_FINANCE:min_electricity
+
+  - id: PB01
+    products: [PAPERLESS_BANKING]
+    severity: HARD_BLOCK
+    description: Must currently receive paper statements
+    when_fails_if:
+      field: paper_statements_active
+      op: eq
+      value: 0.0
+    on_missing: MISSING
+    fail_code: EL_FAIL_ALREADY_PAPERLESS
+    pass_code: EL_PASS_PAPER_STATEMENTS
+    criteria_source: product_catalogue_v1:PAPERLESS:paper_statements
+
+  - id: PB02
+    products: [PAPERLESS_BANKING]
+    severity: HARD_BLOCK
+    description: Minimum digital activity
+    when_fails_if:
+      field: average_mobile_logins_3m
+      op: lt
+      value: "$thr.min_digital_logins_90d"
+    on_missing: MISSING
+    fail_code: EL_FAIL_LOW_DIGITAL_ACTIVITY
+    pass_code: EL_PASS_DIGITAL_ACTIVITY
+    criteria_source: product_catalogue_v1:PAPERLESS:digital_activity
+
+  - id: PB03
+    products: [PAPERLESS_BANKING]
+    severity: HARD_BLOCK
+    description: Digital-only route is not suitable when paper needs remain
+    when_fails_if:
+      field: requires_paper_comms
+      op: is_true
+    on_missing: PASS
+    fail_code: EL_FAIL_PAPER_NEEDED
+    pass_code: EL_PASS_DIGITAL_OK
+    criteria_source: product_catalogue_v1:PAPERLESS:accessibility
