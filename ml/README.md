@@ -3,6 +3,33 @@
 This pipeline implements the four mandatory Lloyds opportunities and emits one validated JSON object per
 `customer_id + product_code` pair using Final JSON Contract `1.0.0`.
 
+For a detailed explanation of the architecture, models, rules, impact calculations, output schema and team workflow,
+read the [ML technical walkthrough](../output/pdf/green_insights_ml_technical_walkthrough.pdf).
+
+## How it works
+
+```text
+Synthetic source tables
+        -> transaction categorisation
+        -> Customer 360 features
+        -> product propensity + confidence + reason codes
+        -> eligibility rules
+        -> deterministic sustainability impact
+        -> recommendation decision
+        -> verified explanation + audit metadata
+        -> JSON Schema validation
+```
+
+The responsibilities remain deliberately separate:
+
+- ML predicts product take-up propensity and categorises transactions.
+- Eligibility rules decide whether an opportunity may be shown.
+- The carbon engine calculates estimated impact from documented formulas and factors.
+- The explanation layer can only explain approved structured fields.
+
+A high propensity cannot override a failed rule. The validated test output includes a high-propensity EV case that
+is still `INELIGIBLE`, `DO_NOT_RECOMMEND`, and `customer_visible=false`.
+
 ## Run
 
 From the repository root:
@@ -27,6 +54,31 @@ Main outputs:
 - `ml/outputs/evaluation_report.json`: transaction and propensity metrics, baselines, confidence intervals,
   selected LightGBM/logistic-regression blend, and thresholds.
 - `ml/contracts/opportunity_v1.schema.json`: machine-readable integration contract.
+
+Large generated JSONL and CSV artifacts are intentionally excluded from Git and can be reproduced with the run
+command. The trained model files, compact evaluation report, feature weights, CV results, schema, and tests are
+stored in the shared branch.
+
+## Validate the safety rules
+
+```bash
+PYTHONPATH=ml .venv/bin/python -m unittest discover -s ml/tests -v
+```
+
+The current tests cover:
+
+- an existing EV owner who must be blocked;
+- missing mileage that must become `MANUAL_REVIEW`;
+- a non-homeowner who must be blocked for Solar Finance.
+
+## Team branch
+
+```bash
+git fetch origin
+git switch feature/ml-json-contract-v1
+```
+
+GitHub branch: <https://github.com/dev-rjt/FineShyt/tree/feature/ml-json-contract-v1>
 
 Real data later:
 
