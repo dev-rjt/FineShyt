@@ -19,3 +19,4 @@ dist/
 # Data and generated files
 data/raw/
 data/processed/
+_old_setup/
