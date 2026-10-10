@@ -1,0 +1,158 @@
+file,column,inferred_type,nullable_in_sample,description,example_values
+data/external/samples/london_smart_meter_monthly_sample.csv,source_household_key,object,False,Source household key.,d92c43802a40e42d | e29946453d1da3bc | 299b8f3f35338073
+data/external/samples/london_smart_meter_monthly_sample.csv,source_month,object,False,Source month.,2012-10 | 2012-11 | 2012-12
+data/external/samples/london_smart_meter_monthly_sample.csv,observed_half_hour_rows,int64,False,Observed half hour rows.,959 | 1392 | 1488
+data/external/samples/london_smart_meter_monthly_sample.csv,observed_kwh,float64,False,Observed kwh.,277.746 | 345.02 | 355.762
+data/external/samples/london_smart_meter_monthly_sample.csv,scaled_monthly_kwh,float64,False,Scaled monthly kwh.,423.14 | 362.12 | 349.31
+data/external/samples/london_smart_meter_monthly_sample.csv,mean_half_hour_kwh,float64,False,Mean half hour kwh.,0.28962 | 0.247859 | 0.239087
+data/external/samples/uci_online_retail_sample.csv,source_customer_key,object,False,Source customer key.,9ee4dbfea33cc1ab | 287d32868dd6c9cc | 08eee2fc5f57462e
+data/external/samples/uci_online_retail_sample.csv,invoice_date,object,False,Invoice date.,2011-09-11T12:46:00 | 2011-03-07T13:17:00 | 2010-01-10T12:13:00
+data/external/samples/uci_online_retail_sample.csv,description,object,False,Description.,WHITE WOOD GARDEN PLANT LADDER | IVORY KITCHEN SCALES | HAND OVER THE CHOCOLATE   SIGN
+data/external/samples/uci_online_retail_sample.csv,quantity,int64,False,Quantity.,1 | 3 | 6
+data/external/samples/uci_online_retail_sample.csv,amount_gbp,float64,False,Amount gbp.,9.95 | 8.5 | 6.3
+data/external/samples/uci_online_retail_sample.csv,country,object,False,Country.,United Kingdom | France | EIRE
+data/processed/customer_360.csv,customer_id,object,False,Synthetic stable customer identifier.,C00001 | C00002 | C00003
+data/processed/customer_360.csv,age_band,object,False,Age band.,25-34 | 45-54 | 55-64
+data/processed/customer_360.csv,income_band,object,False,Income band.,60000_89999 | 40000_59999 | 20000_39999
+data/processed/customer_360.csv,postcode_area,object,False,Postcode area.,OX1 | SE1 | RG1
+data/processed/customer_360.csv,region,object,False,Region.,SOUTH_EAST | LONDON | YORKSHIRE
+data/processed/customer_360.csv,home_owner,bool,False,Home owner.,False | True
+data/processed/customer_360.csv,property_type,object,False,Property type.,RENTED_OR_UNKNOWN | DETACHED | TERRACED
+data/processed/customer_360.csv,mortgage_customer,bool,False,Mortgage customer.,False | True
+data/processed/customer_360.csv,stated_sustainability_preference,float64,True,Stated sustainability preference.,0.525 | 0.162 | 0.218
+data/processed/customer_360.csv,digital_preference,float64,False,Digital preference.,0.313 | 0.71 | 0.851
+data/processed/customer_360.csv,customer_archetype,object,False,Customer archetype.,LOW_DIGITAL_ENGAGEMENT | ENERGY_INTENSIVE_HOMEOWNER | EXISTING_EV_OWNER
+data/processed/customer_360.csv,customer_since,object,False,Customer since.,2022-08-22 | 2016-03-06 | 2014-10-13
+data/processed/customer_360.csv,record_source,object,False,Record source.,SYNTHETIC
+data/processed/customer_360.csv,automotive_spend_6m,float64,False,"Total automotive spending in the six months before cutoff, GBP.",0.0 | 88.97 | 47.51
+data/processed/customer_360.csv,electricity_spend_6m,float64,False,"Total electricity spending in the six months before cutoff, GBP.",62.02 | 205.55 | 417.37
+data/processed/customer_360.csv,fuel_spend_6m,float64,False,"Total fuel spending in the six months before cutoff, GBP.",201.41 | 196.03 | 0.0
+data/processed/customer_360.csv,gas_spend_6m,float64,False,"Total gas spending in the six months before cutoff, GBP.",0.0 | 100.81 | 94.94
+data/processed/customer_360.csv,home_improvement_spend_6m,float64,False,"Total home improvement spending in the six months before cutoff, GBP.",484.76 | 459.89 | 129.97
+data/processed/customer_360.csv,other_spend_6m,float64,False,"Total other spending in the six months before cutoff, GBP.",333.7 | 654.73 | 872.16
+data/processed/customer_360.csv,public_transport_spend_6m,float64,False,"Total public transport spending in the six months before cutoff, GBP.",0.0 | 33.49 | 15.42
+data/processed/customer_360.csv,utilities_spend_6m,float64,False,"Total utilities spending in the six months before cutoff, GBP.",98.49 | 337.53 | 233.97
+data/processed/customer_360.csv,transaction_count_6m,int64,False,Transaction count 6m.,20 | 35 | 26
+data/processed/customer_360.csv,total_spend_6m,float64,False,"Total total spending in the six months before cutoff, GBP.",1180.38 | 2077.0 | 1668.89
+data/processed/customer_360.csv,has_vehicle,bool,False,Boolean indicator for vehicle.,True | False
+data/processed/customer_360.csv,vehicle_fuel_type,object,True,Vehicle fuel type.,HYBRID | ELECTRIC | PETROL
+data/processed/customer_360.csv,vehicle_age_years,float64,True,Vehicle age years.,10.0 | 13.0 | 15.0
+data/processed/customer_360.csv,annual_mileage,float64,True,Estimated annual miles; may be missing by design.,1000.0 | 10854.0 | 7069.0
+data/processed/customer_360.csv,has_existing_ev,bool,False,Boolean indicator for existing ev.,False | True
+data/processed/customer_360.csv,average_monthly_electricity_kwh,float64,True,Customer-level average of monthly electricity kwh.,144.78416666666666 | 96.05916666666668 | 1047.7475
+data/processed/customer_360.csv,average_monthly_gas_kwh,float64,True,Customer-level average of monthly gas kwh.,0.0 | 491.4725 | 543.01
+data/processed/customer_360.csv,energy_data_months,float64,False,Energy data months.,0.0 | 12.0
+data/processed/customer_360.csv,has_solar,bool,False,Boolean indicator for solar.,False | True
+data/processed/customer_360.csv,average_mobile_logins_3m,float64,True,Customer-level average of mobile logins 3m.,13.25 | 27.58333333333333 | 33.666666666666664
+data/processed/customer_360.csv,average_digital_transactions_3m,float64,True,Customer-level average of digital transactions 3m.,20.5 | 36.66666666666666 | 38.5
+data/processed/customer_360.csv,average_branch_visits_3m,float64,True,Customer-level average of branch visits 3m.,1.8333333333333333 | 1.0 | 0.25
+data/processed/customer_360.csv,paper_statements_active,float64,True,Paper statements active.,1.0 | 0.0
+data/processed/customer_360.csv,average_email_open_rate,float64,True,Customer-level average of email open rate.,0.2290833333333333 | 0.48575 | 0.49275
+data/processed/customer_360.csv,digital_data_months,float64,False,Digital data months.,12.0 | 0.0
+data/processed/customer_360.csv,has_current_account,int64,False,Boolean indicator for current account.,1
+data/processed/customer_360.csv,has_investment_account,int64,False,Boolean indicator for investment account.,0 | 1
+data/processed/customer_360.csv,has_mortgage,int64,False,Boolean indicator for mortgage.,0 | 1
+data/processed/customer_360.csv,has_personal_loan,int64,False,Boolean indicator for personal loan.,1 | 0
+data/processed/customer_360.csv,has_savings_account,int64,False,Boolean indicator for savings account.,1 | 0
+data/processed/customer_360.csv,has_vehicle_loan,int64,False,Boolean indicator for vehicle loan.,0 | 1
+data/processed/customer_360.csv,vehicle_data_available,bool,False,Vehicle data available.,False | True
+data/processed/customer_360.csv,energy_data_available,bool,False,Energy data available.,False | True
+data/processed/customer_360.csv,digital_data_available,bool,False,Digital data available.,True | False
+data/processed/customer_360.csv,conflicting_homeownership_signal,bool,False,Conflicting homeownership signal.,False | True
+data/processed/customer_360.csv,data_completeness,float64,False,"Fraction of vehicle, energy and digital data domains available.",0.333 | 1.0 | 0.667
+data/processed/customer_360.csv,data_cutoff_date,object,False,Last date allowed in model features.,2026-06-30
+data/processed/demo_scenarios.csv,customer_id,object,False,Synthetic stable customer identifier.,C00003 | C00017 | C00105
+data/processed/demo_scenarios.csv,scenario,object,False,Scenario.,EXISTING_EV_SUPPRESSION | MISSING_MILEAGE | HOMEOWNERSHIP_CONFLICT
+data/processed/product_takeup_labels.csv,customer_id,object,False,Synthetic stable customer identifier.,C00001 | C00002 | C00003
+data/processed/product_takeup_labels.csv,product_code,object,False,Fixed product identifier from the four required opportunities.,EV_FINANCE
+data/processed/product_takeup_labels.csv,cutoff_date,object,False,Cutoff date.,2026-06-30
+data/processed/product_takeup_labels.csv,outcome_window_days,int64,False,Outcome window days.,90
+data/processed/product_takeup_labels.csv,take_up,int64,False,Binary label showing adoption inside the post-cutoff outcome window.,0 | 1
+data/processed/product_takeup_labels.csv,take_up_date,object,True,Synthetic adoption date for positive labels; blank for negative labels.,2026-09-21 | 2026-07-23 | 2026-09-07
+data/processed/product_takeup_labels.csv,label_method,object,False,Label method.,LATENT_FACTORS_PLUS_NOISE_V1
+data/processed/transaction_category_labels.csv,transaction_id,object,False,Unique transaction identifier.,T00000006 | T00000031 | T00000029
+data/processed/transaction_category_labels.csv,true_category,object,False,Gold transaction category label from the fixed eight-class vocabulary.,GAS | FUEL | UTILITIES
+data/raw/customer_products.csv,customer_product_id,object,False,Identifier for customer product.,CP0000001 | CP0000002 | CP0000003
+data/raw/customer_products.csv,customer_id,object,False,Synthetic stable customer identifier.,C00001 | C00002 | C00003
+data/raw/customer_products.csv,product_type,object,False,Product type.,CURRENT_ACCOUNT | SAVINGS_ACCOUNT | PERSONAL_LOAN
+data/raw/customer_products.csv,start_date,object,False,Start date.,2025-06-08 | 2023-07-08 | 2025-07-18
+data/raw/customer_products.csv,end_date,float64,True,End date.,
+data/raw/customer_products.csv,balance,float64,False,Balance.,854.89 | 1004.74 | 1341.18
+data/raw/customer_products.csv,status,object,False,Status.,ACTIVE
+data/raw/customer_products.csv,record_source,object,False,Record source.,SYNTHETIC
+data/raw/customers.csv,customer_id,object,False,Synthetic stable customer identifier.,C00001 | C00002 | C00003
+data/raw/customers.csv,age_band,object,False,Age band.,25-34 | 45-54 | 55-64
+data/raw/customers.csv,income_band,object,False,Income band.,60000_89999 | 40000_59999 | 20000_39999
+data/raw/customers.csv,postcode_area,object,False,Postcode area.,OX1 | SE1 | RG1
+data/raw/customers.csv,region,object,False,Region.,SOUTH_EAST | LONDON | YORKSHIRE
+data/raw/customers.csv,home_owner,bool,False,Home owner.,False | True
+data/raw/customers.csv,property_type,object,False,Property type.,RENTED_OR_UNKNOWN | DETACHED | TERRACED
+data/raw/customers.csv,mortgage_customer,bool,False,Mortgage customer.,False | True
+data/raw/customers.csv,stated_sustainability_preference,float64,True,Stated sustainability preference.,0.525 | 0.162 | 0.218
+data/raw/customers.csv,digital_preference,float64,False,Digital preference.,0.313 | 0.71 | 0.851
+data/raw/customers.csv,customer_archetype,object,False,Customer archetype.,LOW_DIGITAL_ENGAGEMENT | ENERGY_INTENSIVE_HOMEOWNER | EXISTING_EV_OWNER
+data/raw/customers.csv,customer_since,object,False,Customer since.,2022-08-22 | 2016-03-06 | 2014-10-13
+data/raw/customers.csv,record_source,object,False,Record source.,SYNTHETIC
+data/raw/digital_usage.csv,customer_id,object,False,Synthetic stable customer identifier.,C00001 | C00002 | C00003
+data/raw/digital_usage.csv,month,object,False,Month.,2025-07-01 | 2025-08-01 | 2025-09-01
+data/raw/digital_usage.csv,mobile_logins,int64,False,Mobile logins.,10 | 13 | 16
+data/raw/digital_usage.csv,web_logins,int64,False,Web logins.,3 | 5 | 6
+data/raw/digital_usage.csv,digital_transactions,int64,False,Digital transactions.,18 | 26 | 23
+data/raw/digital_usage.csv,branch_visits,int64,False,Branch visits.,0 | 1 | 5
+data/raw/digital_usage.csv,paper_statements,int64,False,Paper statements.,1 | 0
+data/raw/digital_usage.csv,digital_statements,int64,False,Digital statements.,0 | 1
+data/raw/digital_usage.csv,marketing_email_open_rate,float64,False,Marketing email open rate.,0.189 | 0.067 | 0.064
+data/raw/digital_usage.csv,record_source,object,False,Record source.,SYNTHETIC
+data/raw/energy_usage.csv,customer_id,object,False,Synthetic stable customer identifier.,C00002 | C00003 | C00004
+data/raw/energy_usage.csv,month,object,False,Month.,2025-07-01 | 2025-08-01 | 2025-09-01
+data/raw/energy_usage.csv,electricity_kwh,float64,True,Monthly household electricity consumption in kWh.,105.77 | 100.96 | 126.35
+data/raw/energy_usage.csv,gas_kwh,float64,False,Monthly household gas consumption in kWh.,0.0 | 78.39 | 77.3
+data/raw/energy_usage.csv,estimated_bill_gbp,float64,True,Estimated bill gbp.,52.56 | 51.26 | 58.12
+data/raw/energy_usage.csv,meter_type,object,False,Meter type.,SMART | STANDARD
+data/raw/energy_usage.csv,has_solar,bool,False,Boolean indicator for solar.,False | True
+data/raw/energy_usage.csv,data_quality,object,False,Data quality.,COMPLETE | PARTIAL
+data/raw/energy_usage.csv,profile_source,object,False,Profile source.,LONDON_SMART_METER_SEEDED
+data/raw/transactions.csv,transaction_id,object,False,Unique transaction identifier.,T00000006 | T00000031 | T00000029
+data/raw/transactions.csv,customer_id,object,False,Synthetic stable customer identifier.,C00001 | C00002 | C00003
+data/raw/transactions.csv,transaction_date,object,False,Transaction posting date; never later than the feature cutoff.,2025-07-02 | 2025-07-08 | 2025-07-13
+data/raw/transactions.csv,merchant_description,object,False,Raw-like merchant text used for transaction categorisation.,OCTOPUS ENERGY GAS 4043 | TEXACO FUEL 4265 | THAMES WATER 1330
+data/raw/transactions.csv,amount,float64,False,Amount.,105.66 | 67.36 | 36.87
+data/raw/transactions.csv,debit_credit,object,False,Debit credit.,DEBIT
+data/raw/transactions.csv,true_category,object,False,Gold transaction category label from the fixed eight-class vocabulary.,GAS | FUEL | UTILITIES
+data/raw/transactions.csv,source_basis,object,False,Whether the row is fully synthetic or seeded from a public source.,SYNTHETIC | UCI_ONLINE_RETAIL_II_SEEDED
+data/raw/vehicles.csv,vehicle_id,object,False,Identifier for vehicle.,V00001 | V00002 | V00003
+data/raw/vehicles.csv,customer_id,object,False,Synthetic stable customer identifier.,C00001 | C00002 | C00003
+data/raw/vehicles.csv,vehicle_type,object,False,Vehicle type.,CAR
+data/raw/vehicles.csv,fuel_type,object,True,Fuel type.,HYBRID | ELECTRIC | PETROL
+data/raw/vehicles.csv,vehicle_age_years,int64,False,Vehicle age years.,10 | 13 | 15
+data/raw/vehicles.csv,annual_mileage,float64,True,Estimated annual miles; may be missing by design.,1000.0 | 10854.0 | 7069.0
+data/raw/vehicles.csv,vehicle_efficiency_mpg,float64,True,Vehicle efficiency mpg.,46.9 | 40.8 | 52.4
+data/raw/vehicles.csv,ev_efficiency_kwh_per_mile,float64,True,Ev efficiency kwh per mile.,0.271 | 0.275 | 0.334
+data/raw/vehicles.csv,ownership_status,object,False,Ownership status.,OWNED | FINANCED | LEASED
+data/raw/vehicles.csv,record_date,object,False,Record date.,2026-06-30
+data/raw/vehicles.csv,record_source,object,False,Record source.,SYNTHETIC
+data/reference/emission_factors.csv,factor_id,object,False,Identifier for factor.,UK_PETROL_2026 | UK_DIESEL_2026 | UK_NATURAL_GAS_2026
+data/reference/emission_factors.csv,activity,object,False,Activity.,PETROL_COMBUSTION | DIESEL_COMBUSTION | NATURAL_GAS_GROSS_CV
+data/reference/emission_factors.csv,activity_unit,object,False,Unit required by the emissions factor input.,litres | kWh
+data/reference/emission_factors.csv,factor_value,float64,False,Official 2026 UK conversion factor value.,2.35372 | 2.66155 | 0.18231
+data/reference/emission_factors.csv,factor_unit,object,False,Output unit for the emissions factor.,kg CO2e
+data/reference/emission_factors.csv,scope,object,False,Scope.,Scope 1 | Scope 2 | Scope 3
+data/reference/emission_factors.csv,source,object,False,Source.,https://www.gov.uk/government/publications/greenhouse-gas-re
+data/reference/emission_factors.csv,source_year,int64,False,Source year.,2026
+data/reference/emission_factors.csv,factor_version,float64,False,Factor version.,2026.1
+data/reference/green_products.csv,product_id,object,False,Identifier for product.,GP01 | GP02 | GP03
+data/reference/green_products.csv,product_code,object,False,Fixed product identifier from the four required opportunities.,EV_FINANCE | GREEN_HOME_LOAN | SOLAR_FINANCE
+data/reference/green_products.csv,product_name,object,False,Product name.,EV Finance | Green Home Loan | Solar Finance
+data/reference/green_products.csv,category,object,False,Category.,TRANSPORT | HOME_RETROFIT | RENEWABLE_ENERGY
+data/reference/green_products.csv,intended_use,object,False,Intended use.,"Finance purchase of an electric vehicle | Finance insulation, efficient heating, glazing or heat-pump  | Finance residential solar PV installation"
+data/reference/green_products.csv,sustainability_metric,object,False,Sustainability metric.,POTENTIAL_CO2E_AVOIDED | POTENTIAL_ENERGY_AND_CO2E_REDUCTION | POTENTIAL_GRID_ELECTRICITY_DISPLACED
+data/reference/green_products.csv,active,bool,False,Active.,True
+data/reports/validation_checks.csv,check,object,False,Check.,customers_unique | transactions_unique | vehicles_unique
+data/reports/validation_checks.csv,status,object,False,Status.,PASS
+data/reports/validation_checks.csv,detail,object,False,Detail.,"5,000 customer rows | 276,346 transaction rows | 3,416 vehicle rows"
+data/splits/test_customers.csv,customer_id,object,False,Synthetic stable customer identifier.,C04381 | C01516 | C04005
+data/splits/test_customers.csv,split,object,False,Split.,TEST
+data/splits/train_customers.csv,customer_id,object,False,Synthetic stable customer identifier.,C02030 | C01260 | C00017
+data/splits/train_customers.csv,split,object,False,Split.,TRAIN
+data/splits/validation_customers.csv,customer_id,object,False,Synthetic stable customer identifier.,C00840 | C03734 | C01459
+data/splits/validation_customers.csv,split,object,False,Split.,VALIDATION
