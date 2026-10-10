@@ -20,6 +20,7 @@ SOURCES = [
     ("customers", DATA / "customers.csv", {}),
     ("green_products", DATA / "green_products.csv", {"product": "product_name"}),
     ("emission_factors", DATA / "emissions_factors.csv", {}),
+    ("model_assumptions", DATA / "model_assumptions.csv", {}),
     ("customer_products", DATA / "products.csv", {}),
     ("bank_transactions", DATA / "transactions.csv", {"date": "transaction_date"}),
     ("vehicles", DATA / "vehicles.csv", {}),

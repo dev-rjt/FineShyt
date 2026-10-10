@@ -23,6 +23,10 @@ PRODUCT_COLOURS = {
 }
 BANK_PAGES = ["Executive overview", "Customer directory", "Opportunity desk", "Impact planner", "Model governance", "Data architecture", "Risk & controls"]
 CUSTOMER_PAGES = ["My green insights"]
+API_TO_INTERNAL_PRODUCT = {
+    "EV_FINANCE": "EV_FINANCE", "GREEN_HOME_LOAN": "GREEN_HOME",
+    "SOLAR_FINANCE": "SOLAR_FINANCE", "PAPERLESS_BANKING": "PAPERLESS",
+}
 
 
 st.markdown("""
@@ -124,6 +128,9 @@ def friendly_method(method: str) -> str:
     """Translate calculation notation into judge- and customer-ready language."""
     if not method:
         return "The estimate compares the recorded baseline with a documented 12-month scenario."
+    if "EV_AVOIDED_V1" in method:
+        return ("We compare emissions from driving the recorded annual distance in the current car "
+                "with the electricity an EV would use for the same distance, using the approved grid factor.")
     if "car_petrol" in method:
         return ("We compare emissions from driving the recorded annual distance in the current petrol car "
                 "with the electricity an EV would use for the same distance, using the approved grid factor.")
@@ -133,16 +140,25 @@ def friendly_method(method: str) -> str:
     if "car_hybrid" in method:
         return ("We compare emissions from driving the recorded annual distance in the current hybrid car "
                 "with the electricity an EV would use for the same distance, using the approved grid factor.")
-    if "metered kWh" in method:
+    if "HOME_EFFICIENCY_V1" in method or "metered kWh" in method:
         return ("We apply the documented home-efficiency reductions to the recorded annual gas and electricity "
                 "use, then compare the resulting footprint with the current baseline.")
-    if "PV generation" in method:
+    if "SOLAR_GENERATION_V1" in method or "PV generation" in method:
         return ("We estimate annual solar generation from the modelled system size and compare the displaced "
                 "grid electricity with the customer's current electricity footprint.")
-    if "paper statements" in method:
+    if "PAPER_AVOIDED_V1" in method or "paper statements" in method:
         return ("We multiply the annual paper statements that could be avoided by the documented per-statement "
                 "factor. Digital adoption is reported separately from carbon impact.")
     return method.replace(" x ", " × ")
+
+
+def friendly_assumption(item) -> str:
+    if isinstance(item, dict):
+        identifier = str(item.get("id", "Assumption")).replace("A_", "").replace("_", " ").title()
+        value, unit = item.get("value"), item.get("unit")
+        rendered = f"{value:g}" if isinstance(value, (int, float)) else str(value)
+        return f"{identifier}: {rendered}{f' {unit}' if unit else ''} — {item.get('source', 'documented scenario assumption')}"
+    return str(item).capitalize()
 
 
 def login_screen():
@@ -202,6 +218,37 @@ def api_get(path: str, timeout: int = 60) -> dict:
     return response.json()
 
 
+def canonical_to_ui_record(item: dict) -> dict:
+    """Adapt the frozen public API contract to the dashboard's tabular view model."""
+    internal = API_TO_INTERNAL_PRODUCT[item["opportunity"]]
+    impact = dict(item["impact"])
+    metrics = {metric["metric"]: metric for metric in impact.get("metrics", [])}
+    co2e = metrics.get("CO2E_KG")
+    if co2e:
+        impact.update(avoided_kg_co2e_per_year=co2e["central"], estimate_low=co2e["low"],
+                      estimate_central=co2e["central"], estimate_high=co2e["high"])
+    energy = metrics.get("ENERGY_KWH")
+    if energy:
+        impact["energy_saved_kwh" if internal == "GREEN_HOME" else "energy_generated_kwh"] = energy["central"]
+        impact["generation_kwh"] = energy["central"]
+    paper = metrics.get("PAPER_SHEETS")
+    if paper:
+        impact["paper_sheets_avoided"] = int(paper["central"])
+        impact["paper_statements_avoided"] = int(round(paper["central"] / 3))
+    digital = metrics.get("DIGITAL_ADOPTION_PP")
+    if digital:
+        impact["digital_adoption_shift_pp"] = digital["central"]
+    return {
+        "customer_id": item["customer_id"], "opportunity": internal, "product_id": item["product_id"],
+        "propensity": item["propensity"], "confidence": item["confidence"],
+        "recommend": item["status"] == "RECOMMENDED",
+        "reason_codes": ";".join(reason["code"] for reason in item["reason_codes"] if reason["kind"] == "DRIVER"),
+        "data_timestamp": item["data_as_of"], "split": "live", "impact_status": impact["status"],
+        "est_avoided_kg_co2e_yr": co2e["central"] if co2e else None,
+        "impact_json": json.dumps(impact),
+    }
+
+
 # ----------------------------------------------------------------------------- data
 @st.cache_data(show_spinner="Loading secure data from the API…")
 def load(token: str, role: str, customer_id: str | None):
@@ -217,10 +264,10 @@ def load(token: str, role: str, customer_id: str | None):
         report = raw["evaluation"]
         scoring_source = "portfolio_batch"
     else:
-        profile = api_get(f"/customers/{customer_id}")
+        customer_360 = api_get(f"/customers/{customer_id}")
         scored = api_get(f"/customers/{customer_id}/opportunities")
-        recommendations = scored["items"]
-        customers = [profile]
+        recommendations = [canonical_to_ui_record(item) for item in scored["items"]]
+        customers = [{"customer_id": customer_360["customer_id"], **customer_360["profile"]}]
         digital, energy, factors, products, report = [], [], [], [], {}
         scoring_source = scored["scoring_source"]
     R = pd.DataFrame(recommendations)
@@ -229,7 +276,8 @@ def load(token: str, role: str, customer_id: str | None):
     R = R.merge(C[["customer_id", "region", "income_band", "age_band", "age", "home_owner", "digital_usage",
                    "sustainability_preference"]], on="customer_id", how="left")
     imp = R.impact_json.map(json.loads)
-    for k in ["avoided_kg_co2e_per_year", "energy_saved_kwh", "energy_generated_kwh", "paper_statements_avoided",
+    for k in ["avoided_kg_co2e_per_year", "estimate_low", "estimate_central", "estimate_high",
+              "energy_saved_kwh", "energy_generated_kwh", "paper_statements_avoided",
               "paper_sheets_avoided", "digital_adoption_shift_pp"]:
         R[k] = imp.map(lambda d: d.get(k))
     R["product_name"] = R.opportunity.map(PRODUCT_NAME)
@@ -331,7 +379,7 @@ if page == "My green insights":
             impact = json.loads(r.impact_json)
             if impact.get("status") == "OK":
                 metrics = st.columns(3)
-                metrics[0].metric("Estimated CO₂e avoided", f"{impact['avoided_kg_co2e_per_year']:,.1f} kg/year")
+                metrics[0].metric("Estimated CO₂e range", f"{impact.get('estimate_low', impact['avoided_kg_co2e_per_year']):,.1f}–{impact.get('estimate_high', impact['avoided_kg_co2e_per_year']):,.1f} kg/year")
                 if r.opportunity == "PAPERLESS":
                     metrics[1].metric("Paper statements avoided", f"{impact['paper_statements_avoided']}/year")
                     metrics[2].metric("Paper sheets avoided", f"{impact['paper_sheets_avoided']}/year")
@@ -343,7 +391,11 @@ if page == "My green insights":
                     assumptions = impact.get("assumptions", [])
                     if assumptions:
                         st.markdown("**Assumptions**")
-                        st.markdown("  \n".join(f"- {item.capitalize()}" for item in assumptions))
+                        st.markdown("  \n".join(f"- {friendly_assumption(item)}" for item in assumptions))
+                    factors = impact.get("factors", [])
+                    if factors:
+                        st.markdown("**Factor provenance**")
+                        st.markdown("  \n".join(f"- {factor['factor_id']}: {factor['kg_co2e_per_unit']} kg CO₂e/{factor['unit']} — {factor['source']}" for factor in factors))
                     st.caption("This is a modelled 12-month estimate, not a measured reduction.")
             elif impact.get("status") == "INSUFFICIENT_DATA":
                 st.warning("We need more information before we can estimate the potential impact.")
@@ -414,7 +466,7 @@ elif page == "Executive overview":
         em = rec[rec.opportunity.isin(["EV_FINANCE", "GREEN_HOME", "SOLAR_FINANCE"])]
         pl = rec[rec.opportunity == "PAPERLESS"]
         m = st.columns(4)
-        m[0].metric("Potential CO₂e avoided (EV+Home+Solar)", f"{em.avoided_kg_co2e_per_year.sum() / 1000:,.0f} t/yr")
+        m[0].metric("Potential CO₂e range (EV+Home+Solar)", f"{em.estimate_low.sum() / 1000:,.0f}–{em.estimate_high.sum() / 1000:,.0f} t/yr")
         m[1].metric("Energy: saved + generated", f"{(rec.energy_saved_kwh.fillna(0).sum() + rec.energy_generated_kwh.fillna(0).sum()) / 1000:,.0f} MWh/yr")
         m[2].metric("Paper statements avoided", f"{pl.paper_statements_avoided.sum():,.0f}/yr", f"{pl.paper_sheets_avoided.sum():,.0f} sheets", delta_color="off")
         m[3].metric("Digital adoption", f"{len(pl):,} customers to switch", f"avg paper share {pl.digital_adoption_shift_pp.mean():.0f}%", delta_color="off")
@@ -583,11 +635,11 @@ elif page == "Opportunity desk":
                     q = st.columns(3)
                     q[0].metric("Paper statements avoided", f"{imp['paper_statements_avoided']}/yr")
                     q[1].metric("Sheets avoided", f"{imp['paper_sheets_avoided']}/yr")
-                    q[2].metric("Est. CO₂e", f"{imp['avoided_kg_co2e_per_year']} kg/yr")
+                    q[2].metric("Est. CO₂e range", f"{imp['estimate_low']:,.2f}–{imp['estimate_high']:,.2f} kg/yr")
                     st.caption("Digital adoption is shown separately and is not itself a carbon reduction.")
                 else:
                     q = st.columns(3)
-                    q[0].metric("Est. CO₂e avoided", f"{imp['avoided_kg_co2e_per_year']:,.0f} kg/yr", help="Estimate, not a measured result")
+                    q[0].metric("Est. CO₂e range", f"{imp.get('estimate_low', imp['avoided_kg_co2e_per_year']):,.0f}–{imp.get('estimate_high', imp['avoided_kg_co2e_per_year']):,.0f} kg/yr", help="Estimated range, not a measured result")
                     q[1].metric("Baseline → scenario", f"{imp['baseline_kg_co2e']:,.0f} → {imp['scenario_kg_co2e']:,.0f} kg")
                     extra = imp.get("energy_saved_kwh") or imp.get("generation_kwh")
                     if extra: q[2].metric("Energy " + ("saved" if "energy_saved_kwh" in imp else "generated"), f"{extra:,.0f} kWh/yr")
@@ -596,7 +648,11 @@ elif page == "Opportunity desk":
                     assumptions = imp.get("assumptions", [])
                     if assumptions:
                         st.markdown("**Planning assumptions**")
-                        st.markdown("  \n".join(f"- {item.capitalize()}" for item in assumptions))
+                        st.markdown("  \n".join(f"- {friendly_assumption(item)}" for item in assumptions))
+                    factors = imp.get("factors", [])
+                    if factors:
+                        st.markdown("**Factor provenance**")
+                        st.dataframe(pd.DataFrame(factors), hide_index=True, width="stretch")
                     st.caption("The estimate uses recorded activity inputs and approved emission factors. Raw payloads remain in the audit layer, not the business interface.")
             elif imp.get("status") == "INSUFFICIENT_DATA":
                 st.warning(f"Not enough data to estimate impact: missing {', '.join(imp['missing_inputs'])}")
@@ -652,7 +708,7 @@ elif page == "Impact planner":
             st.warning(f"Insufficient data: {imp.get('missing_inputs')}")
         else:
             c = st.columns(3)
-            c[0].metric("Est. CO₂e avoided", f"{imp['avoided_kg_co2e_per_year']:,.1f} kg/yr")
+            c[0].metric("Est. CO₂e range", f"{imp.get('estimate_low', imp['avoided_kg_co2e_per_year']):,.1f}–{imp.get('estimate_high', imp['avoided_kg_co2e_per_year']):,.1f} kg/yr")
             if "baseline_kg_co2e" in imp:
                 c[1].metric("Baseline", f"{imp['baseline_kg_co2e']:,.0f} kg"); c[2].metric("Scenario", f"{imp['scenario_kg_co2e']:,.0f} kg")
                 comparison = go.Figure(go.Bar(x=["Current baseline", "Modelled scenario"],
@@ -667,25 +723,16 @@ elif page == "Impact planner":
             st.markdown(f"<div class='business-note'><b>Calculation method:</b> {html.escape(friendly_method(imp.get('method', '')))}</div>", unsafe_allow_html=True)
             if imp.get("assumptions"):
                 with st.expander("Scenario assumptions"):
-                    st.markdown("  \n".join(f"- {item.capitalize()}" for item in imp["assumptions"]))
+                    st.markdown("  \n".join(f"- {friendly_assumption(item)}" for item in imp["assumptions"]))
+                    if imp.get("factors"):
+                        st.markdown("**Factor provenance**")
+                        st.dataframe(pd.DataFrame(imp["factors"]), hide_index=True, width="stretch")
             st.caption("Planning estimate only. It does not represent a measured customer outcome or a financial-product decision.")
     with st.expander("Portfolio modelling assumptions"):
-        assumption_labels = {
-            "ev_replaces_current_vehicle_same_mileage": "EV replaces the current vehicle at the same mileage",
-            "ev_embodied_emissions_excluded": "Vehicle manufacturing emissions are excluded",
-            "green_home_gas_reduction": "Green-home scenario: gas reduction",
-            "green_home_elec_reduction": "Green-home scenario: electricity reduction",
-            "solar_kwp_min": "Minimum modelled solar system (kWp)",
-            "solar_kwp_max": "Maximum modelled solar system (kWp)",
-            "solar_target_offset": "Target share of annual electricity use offset",
-            "solar_all_generation_displaces_grid": "Solar generation displaces average grid electricity",
-            "horizon": "Planning horizon",
-            "paper_sheets_per_statement": "Sheets per paper statement",
-        }
-        assumptions_view = pd.DataFrame([
-            {"Planning assumption": assumption_labels.get(key, key.replace("_", " ").title()), "Value": pretty_value(value)}
-            for key, value in ASSUMPTIONS.items()
-        ])
+        assumptions_view = ASSUMPTIONS.reset_index().rename(columns={
+            "assumption_id": "Assumption ID", "low": "Low", "central": "Central", "high": "High",
+            "unit": "Unit", "source": "Source", "version": "Version",
+        })
         st.dataframe(assumptions_view, hide_index=True, width="stretch")
 
 # ----------------------------------------------------------------------------- 4. model & evaluation

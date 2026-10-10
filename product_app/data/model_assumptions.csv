@@ -1,0 +1,9 @@
+assumption_id,low,central,high,unit,source,version
+A_EV_KWH_PER_KM,0.17,0.20,0.23,kWh/km,Documented prototype scenario range,prototype-1
+A_GREEN_HOME_GAS_REDUCTION,0.15,0.20,0.25,fraction,Documented retrofit scenario range,prototype-1
+A_GREEN_HOME_ELECTRICITY_REDUCTION,0.03,0.05,0.08,fraction,Documented retrofit scenario range,prototype-1
+A_SOLAR_YIELD,800,900,1000,kWh/kWp/year,Documented UK PV-yield scenario range,prototype-1
+A_SOLAR_MIN_SYSTEM,2,2,2,kWp,Prototype system-size boundary,prototype-1
+A_SOLAR_MAX_SYSTEM,6,6,6,kWp,Prototype system-size boundary,prototype-1
+A_PAPER_SHEETS_PER_STATEMENT,3,3,3,sheets/statement,Prototype document-count assumption,prototype-1
+A_PAPER_KG_CO2E_PER_STATEMENT,0.020,0.025,0.030,kgCO2e/statement,Prototype lifecycle scenario range,prototype-1

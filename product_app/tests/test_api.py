@@ -1,9 +1,17 @@
 import os
+import json
+from pathlib import Path
 import unittest
 
 from fastapi import HTTPException
+from jsonschema import Draft202012Validator, FormatChecker
 
-from api import LoginRequest, get_customer, get_feature_weights, get_opportunities, health, login
+from api import LoginRequest, get_customer, get_customer_audit, get_feature_weights, get_opportunities, health, login, require_bank
+from api_service import score_snapshot
+
+
+SCHEMA = json.loads((Path(__file__).resolve().parents[2] / "contracts" / "opportunity_v1.schema.json").read_text())
+VALIDATOR = Draft202012Validator(SCHEMA, format_checker=FormatChecker())
 
 
 class ApiIntegrationTests(unittest.TestCase):
@@ -21,7 +29,9 @@ class ApiIntegrationTests(unittest.TestCase):
         principal = self.login(os.environ["CUSTOMER_DEMO_ID"], os.environ["CUSTOMER_DEMO_PASSWORD"])
         customer_id = os.environ["CUSTOMER_DEMO_ID"]
         own = get_opportunities(customer_id, principal)
-        self.assertEqual(len(own["items"]), 4)
+        self.assertLessEqual(len(own["items"]), 4)
+        self.assertTrue(own["items"])
+        self.assertTrue(all(item["status"] != "SUPPRESSED" for item in own["items"]))
         self.assertEqual(own["scoring_source"], "live_model")
         with self.assertRaises(HTTPException) as caught:
             get_opportunities("C10001", principal)
@@ -32,8 +42,42 @@ class ApiIntegrationTests(unittest.TestCase):
         weights = get_feature_weights("EV_FINANCE", principal)
         self.assertGreater(len(weights["items"]), 5)
         customer = get_opportunities("C12558", principal)
-        self.assertEqual(len(customer["items"]), 4)
-        self.assertEqual(get_customer("C12558", principal)["customer_id"], "C12558")
+        self.assertTrue(all(item["status"] != "SUPPRESSED" for item in customer["items"]))
+        profile = get_customer("C12558", principal)
+        self.assertEqual(profile["customer_id"], "C12558")
+        self.assertIn("data_quality", profile)
+
+    def test_bank_audit_is_complete_and_contract_valid(self):
+        principal = self.login(os.environ["BANK_DEMO_ID"], os.environ["BANK_DEMO_PASSWORD"])
+        audit = get_customer_audit("C12558", principal)
+        self.assertEqual(len(audit["items"]), 4)
+        self.assertEqual(
+            {item["opportunity"] for item in audit["items"]},
+            {"EV_FINANCE", "GREEN_HOME_LOAN", "SOLAR_FINANCE", "PAPERLESS_BANKING"},
+        )
+        for item in audit["items"]:
+            errors = sorted(VALIDATOR.iter_errors(item), key=lambda error: list(error.path))
+            self.assertEqual(errors, [], "\n".join(error.message for error in errors))
+
+    def test_customer_cannot_open_bank_audit(self):
+        principal = self.login(os.environ["CUSTOMER_DEMO_ID"], os.environ["CUSTOMER_DEMO_PASSWORD"])
+        with self.assertRaises(HTTPException) as caught:
+            require_bank(principal)
+        self.assertEqual(caught.exception.status_code, 403)
+
+    def test_ad_hoc_scenario_is_not_persisted_and_rules_win(self):
+        result = score_snapshot({
+            "customer_id": "TEST-EV",
+            "profile": {"age": 35, "income_band": "MID", "home_owner": False},
+            "vehicle": {"fuel_type": "ELECTRIC", "vehicle_age": 2, "annual_mileage": None},
+            "holdings": [], "transactions": [], "energy_usage": [], "digital_usage": [],
+        })
+        self.assertEqual(len(result["items"]), 4)
+        ev = next(item for item in result["items"] if item["product_id"] == "GP01")
+        self.assertEqual(ev["status"], "SUPPRESSED")
+        self.assertEqual(ev["gate"]["failed_rules"][0]["code"], "ALREADY_EV_NO_REPLACEMENT_USE_CASE")
+        for item in result["items"]:
+            self.assertEqual(list(VALIDATOR.iter_errors(item)), [])
 
 
 if __name__ == "__main__":

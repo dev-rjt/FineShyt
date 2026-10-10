@@ -33,14 +33,15 @@ deploying anywhere shared.
 5. Product rules run independently and can suppress a high-scoring opportunity.
    The rules never get overridden by the model, customer memory or wording layer.
 6. The deterministic carbon engine calculates the modelled 12-month impact from
-   documented activity inputs, formulas, factors and assumptions. Missing inputs
-   return insufficient data instead of a guessed figure.
+   documented activity inputs, formulas, versioned factors and table-driven
+   assumptions. Every result has a low/central/high range. Missing inputs return
+   insufficient data instead of a guessed figure.
 7. The explanation layer receives only structured approved facts. Optional model
    wording is verified; any invented number or provider failure falls back to
    reviewed deterministic text.
 8. The API applies role authorisation. A customer can retrieve only their own
-   profile and opportunities; the bank role can access portfolio aggregates and
-   authorised customer drill-down.
+   profile and non-suppressed opportunities; the bank role can access portfolio
+   aggregates, full four-product decision audits and authorised drill-down.
 9. The customer portal presents relevance, evidence, estimated annual impact,
    methodology and a clear action. The bank workspace adds portfolio opportunity,
    segmentation, trends, impact planning, model governance, a live database
@@ -63,11 +64,9 @@ privacy review, accessibility testing and ongoing model-risk monitoring.
 ## Rebuild and verify
 
 ```bash
-cd product_app
-.venv/bin/python run_pipeline.py
-PYTHONPATH=. .venv/bin/python -m unittest discover -s tests -v
+make verify
 ```
 
-The root repository also retains the original branch implementations and their
-test suites for dataset, ML contract, Responsible AI, rules engine and grounded
-local-LLM verification.
+This rebuilds the range estimates and normalised database, then runs the final
+product, dataset, ML contract, Responsible AI, rules engine, reference-engine
+and grounded-LLM suites. The final audit pass executes 223 tests.

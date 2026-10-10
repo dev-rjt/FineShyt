@@ -9,11 +9,25 @@ import os
 from pathlib import Path
 import time
 
-from fastapi import Depends, FastAPI, Header, HTTPException
-from pydantic import BaseModel
+import pandas as pd
 
-from api_service import bank_bootstrap, customer_profile, data_catalog, feature_weights, health_details, score_customer
+from fastapi import Depends, FastAPI, Header, HTTPException, Query
+from fastapi.encoders import jsonable_encoder
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel
+from starlette.exceptions import HTTPException as StarletteHTTPException
+
+from api_service import (
+    bank_bootstrap, business_summary, canonical_opportunities, customer_360, customer_directory,
+    customer_profile, customer_transactions, data_catalog, feature_weights, health_details,
+    product_catalog, reason_catalog, repository, system_meta,
+    score_snapshot,
+)
 from auth import Principal, authenticate, credentials_ready, load_local_env
+from carbon_engine import estimate_impact
+from config import PRODUCT_IDS
+from txn_classifier import rule_classify
 
 load_local_env(Path(__file__).with_name(".env"))
 
@@ -23,10 +37,35 @@ app = FastAPI(
     description="Authenticated integration API for model, rules, impact, explanation and dashboard layers.",
 )
 
+ERROR_CODES = {400: "BAD_REQUEST", 401: "UNAUTHENTICATED", 403: "FORBIDDEN", 404: "NOT_FOUND", 422: "VALIDATION_ERROR"}
+
+
+@app.exception_handler(StarletteHTTPException)
+async def http_error(_, exc):
+    return JSONResponse(status_code=exc.status_code, content={
+        "error": str(exc.detail), "code": ERROR_CODES.get(exc.status_code, "INTERNAL_ERROR"), "detail": None,
+    })
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_error(_, exc):
+    return JSONResponse(status_code=422, content={
+        "error": "Invalid request", "code": "VALIDATION_ERROR", "detail": jsonable_encoder(exc.errors()),
+    })
+
 
 class LoginRequest(BaseModel):
     username: str
     password: str
+
+
+class PayloadRequest(BaseModel):
+    items: list[dict]
+
+
+class ImpactRequest(BaseModel):
+    product_id: str
+    inputs: dict
 
 
 def _b64(data: bytes) -> str:
@@ -93,6 +132,64 @@ def health():
     return health_details()
 
 
+@app.get("/")
+def root():
+    return {"message": "Verdant Green Customer Insights API", "docs": "/docs", "health": "/health"}
+
+
+@app.get("/meta")
+def meta(_: dict = Depends(current_principal)):
+    return system_meta()
+
+
+@app.get("/products")
+def products(_: dict = Depends(current_principal)):
+    return {"items": product_catalog()}
+
+
+@app.get("/reason-codes")
+def reason_codes(_: dict = Depends(current_principal)):
+    return {"items": reason_catalog()}
+
+
+@app.get("/emission-factors")
+def emission_factors(_: dict = Depends(current_principal)):
+    return {"items": bank_bootstrap()["emission_factors"]}
+
+
+@app.post("/categorise")
+def categorise(request: PayloadRequest, _: dict = Depends(require_bank)):
+    items = []
+    for source in request.items:
+        description = str(source.get("merchant_description") or "")
+        category = rule_classify(description).upper().replace(" ", "_")
+        items.append({"merchant_description": description, "category": category,
+                      "method": "RULE", "confidence": 1.0, "model_version": "ordered-rules-v1"})
+    return {"items": items}
+
+
+@app.post("/impact/estimate")
+def impact_estimate(request: ImpactRequest, _: dict = Depends(require_bank)):
+    reverse = {value: key for key, value in PRODUCT_IDS.items()}
+    product = reverse.get(request.product_id.upper())
+    if product is None:
+        raise HTTPException(status_code=404, detail="Unknown product")
+    values = dict(request.inputs)
+    if "fuel_type" in values and "fuel_type_code" not in values:
+        values["fuel_type_code"] = {"PETROL": 0, "DIESEL": 1, "HYBRID": 2, "ELECTRIC": 3}.get(str(values["fuel_type"]).upper())
+    if "electricity_kwh_12m" in values:
+        values["elec_kwh_yr"] = values["electricity_kwh_12m"]
+    if "gas_kwh_12m" in values:
+        values["gas_kwh_yr"] = values["gas_kwh_12m"]
+    impact = estimate_impact(product, pd.Series(values))
+    return {key: impact[key] for key in ["status", "is_estimate", "horizon_months", "method", "metrics", "assumptions", "factors", "missing_inputs"]}
+
+
+@app.post("/score")
+def score(payload: dict, _: dict = Depends(require_bank)):
+    return score_snapshot(payload)
+
+
 @app.post("/auth/login")
 def login(request: LoginRequest):
     if not credentials_ready():
@@ -120,10 +217,39 @@ def me(principal: dict = Depends(current_principal)):
 @app.get("/customers/{customer_id}")
 def get_customer(customer_id: str, principal: dict = Depends(current_principal)):
     allow_customer(customer_id, principal)
-    profile = customer_profile(customer_id)
+    profile = customer_360(customer_id)
     if profile is None:
         raise HTTPException(status_code=404, detail="Customer not found")
     return profile
+
+
+@app.get("/customers")
+def get_customers(
+    region: str | None = None, search: str | None = None,
+    limit: int = Query(50, ge=1, le=500), offset: int = Query(0, ge=0),
+    _: dict = Depends(require_bank),
+):
+    rows = customer_directory()
+    if region:
+        rows = [row for row in rows if str(row["region"]).casefold() == region.casefold()]
+    if search:
+        rows = [row for row in rows if row["customer_id"].casefold().startswith(search.casefold())]
+    return {"items": rows[offset:offset + limit], "total": len(rows), "limit": limit, "offset": offset}
+
+
+@app.get("/customers/{customer_id}/transactions")
+def get_transactions(
+    customer_id: str, category: str | None = None,
+    limit: int = Query(50, ge=1, le=500), offset: int = Query(0, ge=0),
+    principal: dict = Depends(current_principal),
+):
+    allow_customer(customer_id, principal)
+    if customer_profile(customer_id) is None:
+        raise HTTPException(status_code=404, detail="Customer not found")
+    rows = customer_transactions(customer_id)
+    if category:
+        rows = [row for row in rows if row["category"] == category.upper()]
+    return {"items": rows[offset:offset + limit], "total": len(rows), "limit": limit, "offset": offset}
 
 
 @app.get("/customers/{customer_id}/opportunities")
@@ -131,8 +257,29 @@ def get_opportunities(customer_id: str, principal: dict = Depends(current_princi
     allow_customer(customer_id, principal)
     if customer_profile(customer_id) is None:
         raise HTTPException(status_code=404, detail="Customer not found")
-    items, source = score_customer(customer_id)
+    items, source = canonical_opportunities(customer_id, include_suppressed=False)
+    return {"items": items, "data_as_of": items[0]["data_as_of"] if items else None, "scoring_source": source}
+
+
+@app.get("/customers/{customer_id}/audit")
+def get_customer_audit(customer_id: str, _: dict = Depends(require_bank)):
+    if customer_profile(customer_id) is None:
+        raise HTTPException(status_code=404, detail="Customer not found")
+    items, source = canonical_opportunities(customer_id, include_suppressed=True)
     return {"items": items, "scoring_source": source}
+
+
+@app.get("/customers/{customer_id}/opportunities/{product_id}")
+def get_opportunity(product_id: str, customer_id: str, principal: dict = Depends(current_principal)):
+    allow_customer(customer_id, principal)
+    if customer_profile(customer_id) is None:
+        raise HTTPException(status_code=404, detail="Customer not found")
+    include_suppressed = principal["role"] == "bank"
+    items, _ = canonical_opportunities(customer_id, include_suppressed=include_suppressed)
+    match = next((item for item in items if item["product_id"] == product_id.upper()), None)
+    if match is None:
+        raise HTTPException(status_code=404, detail="Opportunity is not available")
+    return match
 
 
 @app.get("/bank/bootstrap")
@@ -151,3 +298,16 @@ def get_feature_weights(product: str, _: dict = Depends(require_bank)):
 @app.get("/bank/data-catalog")
 def get_data_catalog(_: dict = Depends(require_bank)):
     return data_catalog()
+
+
+@app.get("/evaluation")
+def get_evaluation(_: dict = Depends(require_bank)):
+    report = repository()["evaluation"]
+    return {"items": [{"component": product, "split": "test", "metrics": values["test"],
+                        "baseline": values["baseline_logreg_test"]}
+                       for product, values in report.items() if isinstance(values, dict) and "test" in values]}
+
+
+@app.get("/business/summary")
+def get_business_summary(_: dict = Depends(require_bank)):
+    return business_summary()

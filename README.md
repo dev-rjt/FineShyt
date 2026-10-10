@@ -19,6 +19,12 @@ Demo sign-in: bank `bank_manager` / `GreenBank@2026`; customer `C12558` /
 `GreenCustomer@2026`. See [FINAL_HANDOFF.md](FINAL_HANDOFF.md) for the complete
 problem-statement walkthrough, rebuild commands and prototype boundaries.
 
+The protected API includes Customer 360, paginated customer/transaction lists,
+customer-safe opportunities, a bank-only full audit, product/reason/factor
+catalogues, evaluation and business summaries, pure impact estimation,
+transaction categorisation, and non-persisted ad-hoc scenario scoring. Runtime
+Opportunity objects are validated against `contracts/opportunity_v1.schema.json`.
+
 ## Host the demo
 
 The repository includes a Render Blueprint in `render.yaml`. It installs the
@@ -55,6 +61,13 @@ python3 src/data/validate_dataset.py
 python3 ml/run_project_dataset.py
 ```
 
+To rebuild deterministic impacts and the SQLite database and run every test
+group against the final integration:
+
+```bash
+make verify
+```
+
 All data is synthetic or based on bounded lawful public samples. Propensity is
 not eligibility. Sustainability figures are estimates from deterministic rules.
 
@@ -62,3 +75,4 @@ not eligibility. Sustainability figures are estimates from deterministic rules.
 
 - [Responsible AI controls and run instructions](README_RAI.md)
 - [Customer and bank-staff LLM explanations with local Ollama](README_LLM.md)
+- [Final problem-statement and contract gap audit](docs/submission-gap-audit.md)

@@ -53,7 +53,8 @@ def build_payload(rec: dict) -> dict:
              reason_codes=codes, reasons_plain=reason_phrases(codes), data_as_of=str(rec["data_timestamp"]),
              impact_status=impact.get("status", "NOT_APPLICABLE"), action=ACTION[rec["opportunity"]])
     if impact.get("status") == "OK":
-        for k in ("avoided_kg_co2e_per_year", "horizon", "method", "assumptions", "paper_statements_avoided",
+        for k in ("avoided_kg_co2e_per_year", "estimate_low", "estimate_central", "estimate_high",
+                  "horizon", "method", "assumptions", "factors", "paper_statements_avoided",
                   "paper_sheets_avoided", "digital_adoption_shift_pp", "energy_saved_kwh", "system_kwp", "generation_kwh"):
             if k in impact: p[k] = impact[k]
     elif impact.get("status") == "INSUFFICIENT_DATA":
@@ -69,9 +70,12 @@ def template_explain(p: dict) -> str:
     if p["impact_status"] == "OK":
         if p["product"] == "Paperless Banking":
             s += (f"Switching could avoid about {p['paper_statements_avoided']} paper statements "
-                  f"(~{p['paper_sheets_avoided']} sheets) a year, and save roughly {p['avoided_kg_co2e_per_year']} kg CO2e (estimate). ")
+                  f"(~{p['paper_sheets_avoided']} sheets) a year, with an estimated potential range of "
+                  f"{p.get('estimate_low', p['avoided_kg_co2e_per_year'])}–{p.get('estimate_high', p['avoided_kg_co2e_per_year'])} kg CO2e. ")
         else:
-            s += f"Our estimate is roughly {p['avoided_kg_co2e_per_year']:,} kg CO2e avoided per {p['horizon'].replace('12 months', 'year')} (an estimate, not a measured result). "
+            s += (f"Our estimated potential range is {p.get('estimate_low', p['avoided_kg_co2e_per_year']):,}–"
+                  f"{p.get('estimate_high', p['avoided_kg_co2e_per_year']):,} kg CO2e per "
+                  f"{p['horizon'].replace('12 months', 'year')} (not a measured result). ")
     elif p["impact_status"] == "INSUFFICIENT_DATA":
         s += "We don't have enough data to estimate the carbon impact yet. "
     s += f"This is an indication of interest, not an offer or approval; eligibility is confirmed separately. Based on data as of {p['data_as_of']}."

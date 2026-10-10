@@ -78,7 +78,21 @@ CREATE TABLE emission_factors (
     activity TEXT PRIMARY KEY,
     unit TEXT NOT NULL,
     kg_co2e_per_unit REAL NOT NULL CHECK (kg_co2e_per_unit >= 0),
-    source TEXT NOT NULL
+    source TEXT NOT NULL,
+    factor_id TEXT NOT NULL UNIQUE,
+    source_year INTEGER,
+    factor_version TEXT NOT NULL
+);
+
+CREATE TABLE model_assumptions (
+    assumption_id TEXT PRIMARY KEY,
+    low REAL NOT NULL,
+    central REAL NOT NULL,
+    high REAL NOT NULL,
+    unit TEXT NOT NULL,
+    source TEXT NOT NULL,
+    version TEXT NOT NULL,
+    CHECK (low <= central AND central <= high)
 );
 
 -- One model-ready feature snapshot per customer. This is separated from source
