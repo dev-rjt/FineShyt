@@ -133,8 +133,11 @@ def validate_record(
     if impact["status"] == "OK":
         if not impact["metrics"] or impact["missing_inputs"]:
             violations.append("impact: OK requires metrics and no missing inputs")
-        if not impact["assumptions"] or not impact["factors"]:
-            violations.append("impact: OK requires documented assumptions and factors")
+        if not impact["assumptions"]:
+            violations.append("impact: OK requires documented assumptions")
+        has_carbon_metric = any(metric["metric"] == "CO2E_KG" for metric in impact["metrics"])
+        if has_carbon_metric and not impact["factors"]:
+            violations.append("impact: CO2e estimates require documented emission factors")
         for index, metric in enumerate(impact["metrics"]):
             if not metric["low"] <= metric["central"] <= metric["high"]:
                 violations.append(f"impact.metrics[{index}]: estimate range is unordered")

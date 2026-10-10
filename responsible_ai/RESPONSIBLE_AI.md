@@ -56,10 +56,10 @@ be fitted on training customers only.
 ## Explainability and impact
 
 For `impact.status = OK`, records need at least one ordered low/central/high range,
-a positive horizon, a documented method, assumptions and emission-factor
-provenance. Metrics remain separate: CO2e, energy, paper and digital adoption are
-never summed. `INSUFFICIENT_DATA` carries no metrics; zero is not a missing-value
-substitute.
+a positive horizon, a documented method and assumptions. CO2e metrics also require
+emission-factor provenance; non-carbon paper and digital metrics do not invent a
+factor. Metrics remain separate: CO2e, energy, paper and digital adoption are never
+summed. `INSUFFICIENT_DATA` carries no metrics; zero is not a missing-value substitute.
 
 Customer-facing `insight` objects must be verified and come from `LLM` or the
 deterministic `TEMPLATE` fallback. The checks can enforce write scope and basic

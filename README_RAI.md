@@ -103,7 +103,7 @@ validate records without that flag so suppressed decisions remain inspectable.
 - A failed product-rule gate always overrides propensity and suppresses output.
 - Suppressed opportunities have no insight, action or customer rank.
 - Missing impact is never represented as a zero estimate.
-- Available impact has ordered ranges, a method, assumptions and factor provenance.
+- Available impact has ordered ranges, a method and assumptions; CO2e also requires factor provenance.
 - Customer text is verified, preserves the eligibility disclaimer and avoids
   approval or eligibility claims.
 - A before/after snapshot proves the LLM changed only `insight`.
