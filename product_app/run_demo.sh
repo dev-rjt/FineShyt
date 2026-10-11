@@ -10,13 +10,20 @@ if [[ ! -x .venv/bin/python ]]; then
   .venv/bin/python -m pip install -r requirements.txt -r requirements-app.txt
 fi
 
-if [[ ! -f .env ]]; then
-  .venv/bin/python init_local_env.py
-fi
+.venv/bin/python init_local_env.py
 
-set -a
-source .env
-set +a
+while IFS= read -r line || [[ -n "$line" ]]; do
+  [[ -z "$line" || "$line" == \#* || "$line" != *=* ]] && continue
+  key="${line%%=*}"
+  value="${line#*=}"
+  [[ "$key" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] || continue
+  if [[ "$value" == \"*\" && "$value" == *\" ]]; then
+    value="${value:1:${#value}-2}"
+  elif [[ "$value" == \'*\' && "$value" == *\' ]]; then
+    value="${value:1:${#value}-2}"
+  fi
+  export "$key=$value"
+done < .env
 
 .venv/bin/python ../db/build_demo_db.py --quiet
 

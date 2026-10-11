@@ -6,10 +6,13 @@ Open <http://127.0.0.1:8502>. The app starts at a role-based sign-in screen.
 The launcher also starts the authenticated FastAPI backend on
 <http://127.0.0.1:8000>; interactive API documentation is at `/docs`.
 
-On first run, the launcher creates a private local `.env` with unique demo
-passwords and a random session-signing secret, then prints the passwords once.
-Keep this configuration local; hosted deployments must provide their own
-credentials and session secret.
+On first run, the launcher creates a private local `.env` with salted scrypt
+password verifiers and a random session-signing secret, then prints the unique
+passwords once. Existing local plaintext password entries are migrated on the
+next launch. Hosted deployments must provide their own password hashes and
+session secret. Generate each hash with
+`.venv/bin/python init_local_env.py --hash-password` and set it as the matching
+`*_PASSWORD_HASH` environment variable.
 
 For hosting, the repository root contains a Render Blueprint. Its
 `start_hosted.sh` launcher runs the API internally and exposes only Streamlit on

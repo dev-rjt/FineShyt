@@ -2,20 +2,12 @@ import os
 import json
 from pathlib import Path
 import unittest
+from unittest.mock import patch
 
 from fastapi import HTTPException
 from jsonschema import Draft202012Validator, FormatChecker
 
-TEST_ENV = {
-    "BANK_DEMO_ID": "bank_manager",
-    "BANK_DEMO_PASSWORD": "bank-test-password",
-    "CUSTOMER_DEMO_ID": "C12558",
-    "CUSTOMER_DEMO_PASSWORD": "customer-test-password",
-    "APP_SESSION_SECRET": "test-session-secret-with-more-than-24-chars",
-}
-for key, value in TEST_ENV.items():
-    os.environ.setdefault(key, value)
-
+from auth import hash_password
 from api import LoginRequest, get_customer, get_customer_audit, get_feature_weights, get_opportunities, health, login, require_bank
 from api_service import score_snapshot
 
@@ -25,6 +17,21 @@ VALIDATOR = Draft202012Validator(SCHEMA, format_checker=FormatChecker())
 
 
 class ApiIntegrationTests(unittest.TestCase):
+    BANK_PASSWORD = "bank-test-password"
+    CUSTOMER_PASSWORD = "customer-test-password"
+    TEST_ENV = {
+        "BANK_DEMO_ID": "bank_manager",
+        "BANK_DEMO_PASSWORD_HASH": hash_password(BANK_PASSWORD),
+        "CUSTOMER_DEMO_ID": "C12558",
+        "CUSTOMER_DEMO_PASSWORD_HASH": hash_password(CUSTOMER_PASSWORD),
+        "APP_SESSION_SECRET": "test-session-secret-with-more-than-24-chars",
+    }
+
+    def setUp(self):
+        environment = patch.dict(os.environ, self.TEST_ENV, clear=True)
+        environment.start()
+        self.addCleanup(environment.stop)
+
     def login(self, username, password):
         return login(LoginRequest(username=username, password=password))["principal"]
 
@@ -36,7 +43,7 @@ class ApiIntegrationTests(unittest.TestCase):
         self.assertEqual(body["components"]["impact"], "deterministic_carbon_engine")
 
     def test_customer_is_scoped_to_own_live_score(self):
-        principal = self.login(os.environ["CUSTOMER_DEMO_ID"], os.environ["CUSTOMER_DEMO_PASSWORD"])
+        principal = self.login(os.environ["CUSTOMER_DEMO_ID"], self.CUSTOMER_PASSWORD)
         customer_id = os.environ["CUSTOMER_DEMO_ID"]
         own = get_opportunities(customer_id, principal)
         self.assertLessEqual(len(own["items"]), 4)
@@ -48,7 +55,7 @@ class ApiIntegrationTests(unittest.TestCase):
         self.assertEqual(caught.exception.status_code, 403)
 
     def test_bank_can_access_portfolio_and_customer(self):
-        principal = self.login(os.environ["BANK_DEMO_ID"], os.environ["BANK_DEMO_PASSWORD"])
+        principal = self.login(os.environ["BANK_DEMO_ID"], self.BANK_PASSWORD)
         weights = get_feature_weights("EV_FINANCE", principal)
         self.assertGreater(len(weights["items"]), 5)
         customer = get_opportunities("C12558", principal)
@@ -58,7 +65,7 @@ class ApiIntegrationTests(unittest.TestCase):
         self.assertIn("data_quality", profile)
 
     def test_bank_audit_is_complete_and_contract_valid(self):
-        principal = self.login(os.environ["BANK_DEMO_ID"], os.environ["BANK_DEMO_PASSWORD"])
+        principal = self.login(os.environ["BANK_DEMO_ID"], self.BANK_PASSWORD)
         audit = get_customer_audit("C12558", principal)
         self.assertEqual(len(audit["items"]), 4)
         self.assertEqual(
@@ -70,7 +77,7 @@ class ApiIntegrationTests(unittest.TestCase):
             self.assertEqual(errors, [], "\n".join(error.message for error in errors))
 
     def test_customer_cannot_open_bank_audit(self):
-        principal = self.login(os.environ["CUSTOMER_DEMO_ID"], os.environ["CUSTOMER_DEMO_PASSWORD"])
+        principal = self.login(os.environ["CUSTOMER_DEMO_ID"], self.CUSTOMER_PASSWORD)
         with self.assertRaises(HTTPException) as caught:
             require_bank(principal)
         self.assertEqual(caught.exception.status_code, 403)

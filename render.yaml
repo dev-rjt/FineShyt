@@ -11,11 +11,11 @@ services:
         value: 3.12.7
       - key: BANK_DEMO_ID
         value: bank_manager
-      - key: BANK_DEMO_PASSWORD
+      - key: BANK_DEMO_PASSWORD_HASH
         sync: false
       - key: CUSTOMER_DEMO_ID
         value: C12558
-      - key: CUSTOMER_DEMO_PASSWORD
+      - key: CUSTOMER_DEMO_PASSWORD_HASH
         sync: false
       - key: APP_SESSION_SECRET
         generateValue: true
