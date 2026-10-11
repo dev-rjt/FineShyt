@@ -384,8 +384,10 @@ if page == "My green insights":
                     metrics[1].metric("Paper statements avoided", f"{impact['paper_statements_avoided']}/year")
                     metrics[2].metric("Paper sheets avoided", f"{impact['paper_sheets_avoided']}/year")
                 else:
-                    metrics[1].metric("Current baseline", f"{impact['baseline_kg_co2e']:,.0f} kg/year")
-                    metrics[2].metric("Modelled scenario", f"{impact['scenario_kg_co2e']:,.0f} kg/year")
+                    baseline = impact.get("baseline_kg_co2e")
+                    scenario = impact.get("scenario_kg_co2e")
+                    metrics[1].metric("Current baseline", f"{baseline:,.0f} kg/year" if baseline is not None else "Not provided")
+                    metrics[2].metric("Modelled scenario", f"{scenario:,.0f} kg/year" if scenario is not None else "Not provided")
                 with st.expander("How this estimate was calculated"):
                     st.markdown(f"**Method**  \n{friendly_method(impact.get('method', ''))}")
                     assumptions = impact.get("assumptions", [])
@@ -640,7 +642,10 @@ elif page == "Opportunity desk":
                 else:
                     q = st.columns(3)
                     q[0].metric("Est. CO₂e range", f"{imp.get('estimate_low', imp['avoided_kg_co2e_per_year']):,.0f}–{imp.get('estimate_high', imp['avoided_kg_co2e_per_year']):,.0f} kg/yr", help="Estimated range, not a measured result")
-                    q[1].metric("Baseline → scenario", f"{imp['baseline_kg_co2e']:,.0f} → {imp['scenario_kg_co2e']:,.0f} kg")
+                    baseline = imp.get("baseline_kg_co2e")
+                    scenario = imp.get("scenario_kg_co2e")
+                    q[1].metric("Baseline → scenario", f"{baseline:,.0f} → {scenario:,.0f} kg"
+                                if baseline is not None and scenario is not None else "Not provided")
                     extra = imp.get("energy_saved_kwh") or imp.get("generation_kwh")
                     if extra: q[2].metric("Energy " + ("saved" if "energy_saved_kwh" in imp else "generated"), f"{extra:,.0f} kWh/yr")
                 with st.expander("Method & assumptions"):
@@ -709,7 +714,7 @@ elif page == "Impact planner":
         else:
             c = st.columns(3)
             c[0].metric("Est. CO₂e range", f"{imp.get('estimate_low', imp['avoided_kg_co2e_per_year']):,.1f}–{imp.get('estimate_high', imp['avoided_kg_co2e_per_year']):,.1f} kg/yr")
-            if "baseline_kg_co2e" in imp:
+            if imp.get("baseline_kg_co2e") is not None and imp.get("scenario_kg_co2e") is not None:
                 c[1].metric("Baseline", f"{imp['baseline_kg_co2e']:,.0f} kg"); c[2].metric("Scenario", f"{imp['scenario_kg_co2e']:,.0f} kg")
                 comparison = go.Figure(go.Bar(x=["Current baseline", "Modelled scenario"],
                                               y=[imp["baseline_kg_co2e"], imp["scenario_kg_co2e"]],
@@ -718,8 +723,10 @@ elif page == "Impact planner":
                                               textposition="outside"))
                 st.plotly_chart(plot(comparison.update_layout(title="Annual footprint comparison", yaxis_title="kg CO₂e / year"), height=350),
                                 width="stretch")
-            else:
+            elif prod == "PAPERLESS":
                 c[1].metric("Paper statements avoided", imp["paper_statements_avoided"]); c[2].metric("Sheets avoided", imp["paper_sheets_avoided"])
+            else:
+                c[1].metric("Baseline", "Not provided"); c[2].metric("Scenario", "Not provided")
             st.markdown(f"<div class='business-note'><b>Calculation method:</b> {html.escape(friendly_method(imp.get('method', '')))}</div>", unsafe_allow_html=True)
             if imp.get("assumptions"):
                 with st.expander("Scenario assumptions"):
