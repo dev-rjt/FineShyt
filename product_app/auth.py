@@ -10,6 +10,7 @@ from dataclasses import dataclass
 import hmac
 import os
 from pathlib import Path
+import secrets
 
 
 @dataclass(frozen=True)
@@ -35,13 +36,32 @@ def load_local_env(path: Path) -> None:
         os.environ.setdefault(key, value)
 
 
+def create_local_demo_env(path: Path) -> tuple[str, str] | None:
+    """Create private, per-install demo credentials without overwriting config."""
+    values = {
+        "BANK_DEMO_ID": "bank_manager",
+        "BANK_DEMO_PASSWORD": secrets.token_urlsafe(32),
+        "CUSTOMER_DEMO_ID": "C12558",
+        "CUSTOMER_DEMO_PASSWORD": secrets.token_urlsafe(32),
+        "APP_SESSION_SECRET": secrets.token_urlsafe(48),
+        "API_BASE_URL": "http://127.0.0.1:8000",
+    }
+    try:
+        descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    except FileExistsError:
+        return None
+    with os.fdopen(descriptor, "w", encoding="utf-8") as env_file:
+        env_file.write("".join(f"{key}={value}\n" for key, value in values.items()))
+    return values["BANK_DEMO_PASSWORD"], values["CUSTOMER_DEMO_PASSWORD"]
+
+
 def _same(left: str, right: str) -> bool:
     return hmac.compare_digest(left.encode("utf-8"), right.encode("utf-8"))
 
 
 def authenticate(username: str, password: str) -> Principal | None:
     """Return the matching demo principal, or None for invalid credentials."""
-    username, password = username.strip(), password.strip()
+    username = username.strip()
     bank_id = os.getenv("BANK_DEMO_ID", "")
     bank_password = os.getenv("BANK_DEMO_PASSWORD", "")
     customer_id = os.getenv("CUSTOMER_DEMO_ID", "")
@@ -61,4 +81,5 @@ def authenticate(username: str, password: str) -> Principal | None:
 
 def credentials_ready() -> bool:
     required = ("BANK_DEMO_ID", "BANK_DEMO_PASSWORD", "CUSTOMER_DEMO_ID", "CUSTOMER_DEMO_PASSWORD")
-    return all(os.getenv(key) for key in required)
+    session_secret = os.getenv("APP_SESSION_SECRET", "")
+    return all(os.getenv(key) for key in required) and len(session_secret) >= 24

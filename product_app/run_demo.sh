@@ -4,15 +4,14 @@ set -euo pipefail
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$script_dir"
 
-if [[ ! -f .env ]]; then
-  cp .env.example .env
-  echo "Created a localhost-only demo configuration from .env.example."
-fi
-
 if [[ ! -x .venv/bin/python ]]; then
   python3 -m venv .venv
   .venv/bin/python -m pip install --upgrade pip
   .venv/bin/python -m pip install -r requirements.txt -r requirements-app.txt
+fi
+
+if [[ ! -f .env ]]; then
+  .venv/bin/python init_local_env.py
 fi
 
 set -a

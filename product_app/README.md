@@ -6,13 +6,10 @@ Open <http://127.0.0.1:8502>. The app starts at a role-based sign-in screen.
 The launcher also starts the authenticated FastAPI backend on
 <http://127.0.0.1:8000>; interactive API documentation is at `/docs`.
 
-The launcher creates a local `.env` from `.env.example` on first run. Demo accounts:
-
-- Bank: `bank_manager` / `GreenBank@2026`
-- Customer: `C12558` / `GreenCustomer@2026`
-
-These accounts are limited to localhost and synthetic data. Change the values before
-any hosted deployment.
+On first run, the launcher creates a private local `.env` with unique demo
+passwords and a random session-signing secret, then prints the passwords once.
+Keep this configuration local; hosted deployments must provide their own
+credentials and session secret.
 
 For hosting, the repository root contains a Render Blueprint. Its
 `start_hosted.sh` launcher runs the API internally and exposes only Streamlit on

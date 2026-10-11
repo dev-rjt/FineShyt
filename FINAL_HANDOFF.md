@@ -12,13 +12,9 @@ The first run creates a local demo configuration and installs dependencies. Open
 <http://127.0.0.1:8502>. The launcher starts both the FastAPI service and the
 Streamlit product and stops the API when the UI exits.
 
-| Experience | User ID | Password |
-|---|---|---|
-| Bank workspace | `bank_manager` | `GreenBank@2026` |
-| Customer portal | `C12558` | `GreenCustomer@2026` |
-
-The credentials protect synthetic localhost demo data only. Replace them before
-deploying anywhere shared.
+The first local run generates unique demo passwords and prints them to the
+terminal. Hosted deployments must use separately provisioned credentials and
+session secrets; do not reuse local demo credentials.
 
 ## What happens after sign-in
 

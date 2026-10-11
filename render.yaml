@@ -12,11 +12,11 @@ services:
       - key: BANK_DEMO_ID
         value: bank_manager
       - key: BANK_DEMO_PASSWORD
-        value: GreenBank@2026
+        sync: false
       - key: CUSTOMER_DEMO_ID
         value: C12558
       - key: CUSTOMER_DEMO_PASSWORD
-        value: GreenCustomer@2026
+        sync: false
       - key: APP_SESSION_SECRET
         generateValue: true
       - key: API_BASE_URL

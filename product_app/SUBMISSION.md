@@ -14,12 +14,8 @@ chmod +x run_demo.sh
 Open <http://127.0.0.1:8502>. FastAPI documentation is available at
 <http://127.0.0.1:8000/docs> while the demo is running.
 
-Sign in with either synthetic demo account:
-
-| Experience | User ID | Password |
-|---|---|---|
-| Bank workspace | `bank_manager` | `GreenBank@2026` |
-| Customer portal | `C12558` | `GreenCustomer@2026` |
+On first run, `run_demo.sh` generates unique local demo passwords and prints
+them to the terminal. Do not reuse local demo credentials in a hosted deployment.
 
 `run_demo.sh` starts both services, waits for the API health check, and shuts
 the API down when Streamlit stops. The checked-in model and scored artifacts
