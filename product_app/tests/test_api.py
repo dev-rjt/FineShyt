@@ -90,6 +90,21 @@ class ApiIntegrationTests(unittest.TestCase):
             self.assertEqual(item["insight"], {"text": "EV Finance may suit you.", "source": "LLM", "verified": True})
             self.assertEqual(list(VALIDATOR.iter_errors(item)), [])
 
+    def test_co2e_impacts_carry_footprints_matching_the_central_estimate(self):
+        principal = self.login(os.environ["BANK_DEMO_ID"], self.BANK_PASSWORD)
+        items = get_customer_audit("C12558", principal)["items"]
+        checked = 0
+        for item in items:
+            co2e = next((m for m in item["impact"]["metrics"] if m["metric"] == "CO2E_KG"), None)
+            if item["impact"]["status"] == "OK" and co2e:
+                baseline, scenario = item["impact"]["baseline_kg_co2e"], item["impact"]["scenario_kg_co2e"]
+                self.assertAlmostEqual(baseline - scenario, co2e["central"], delta=0.02)
+                checked += 1
+            else:
+                self.assertNotIn("baseline_kg_co2e", item["impact"])
+            self.assertEqual(list(VALIDATOR.iter_errors(item)), [])
+        self.assertGreater(checked, 0)
+
     def test_llm_fallback_is_reported_as_template(self):
         principal = self.login(os.environ["BANK_DEMO_ID"], self.BANK_PASSWORD)
         with patch("api_service.explain", return_value=("Standard wording.", "template (llm error: Timeout)")):

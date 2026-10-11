@@ -7,7 +7,7 @@ from auth import Principal, credentials_ready, load_local_env
 load_local_env(Path(__file__).with_name(".env"))
 
 from config import PRODUCTS, CUTOFF_DATE, OUTCOME_WINDOW_MONTHS
-from insight_layer import build_payload, explain, ollama_configured, reason_phrases, EXCLUSION_TEXT, PRODUCT_NAME, ACTION
+from insight_layer import build_payload, explain, ollama_configured, summarise_profile, reason_phrases, EXCLUSION_TEXT, PRODUCT_NAME, PRODUCT_LABELS, ACTION
 
 API_BASE_URL = os.getenv("API_BASE_URL", "http://127.0.0.1:8000").rstrip("/")
 
@@ -22,7 +22,7 @@ PRODUCT_COLOURS = {
     "Solar Finance": "#E8A23A", "Paperless Banking": "#5E6AD2",
 }
 BANK_PAGES = ["Executive overview", "Customer directory", "Opportunity desk", "Impact planner", "Model governance", "Data architecture", "Risk & controls"]
-CUSTOMER_PAGES = ["My green insights"]
+CUSTOMER_PAGES = ["My green insights", "My profile"]
 API_TO_INTERNAL_PRODUCT = {
     "EV_FINANCE": "EV_FINANCE", "GREEN_HOME_LOAN": "GREEN_HOME",
     "SOLAR_FINANCE": "SOLAR_FINANCE", "PAPERLESS_BANKING": "PAPERLESS",
@@ -125,6 +125,29 @@ def co2e_range_text(impact: dict, decimals: int = 1, unit: str = "kg/yr") -> str
     return f"{low:,.{decimals}f}–{high:,.{decimals}f} {unit}"
 
 
+def cost_metric(impact: dict) -> dict | None:
+    return next((m for m in impact.get("metrics", []) if m.get("metric") == "COST_SAVING_GBP"), None)
+
+
+def money_text(value: float) -> str:
+    return f"−£{abs(value):,.0f}" if value < 0 else f"£{value:,.0f}"
+
+
+def money_range_text(metric: dict) -> str:
+    if metric["high"] <= 0:
+        return "No saving expected"
+    return f"{money_text(metric['low'])}–{money_text(metric['high'])} a year"
+
+
+COST_BASIS = {
+    "EV_FINANCE": "Your recorded fuel spend compared with charging an electric car for the same distance at your current electricity price.",
+    "GREEN_HOME": "Your recorded gas and electricity bills, reduced by the upgrade assumptions below.",
+    "SOLAR_FINANCE": "The electricity you would no longer buy from the grid, at your current average price per kWh.",
+}
+COST_CAVEAT = ("Running costs only: it leaves out the cost of the car, panels or upgrades, any loan repayments and any "
+               "export payments. Your average price includes standing charges, so the real saving may be a little lower.")
+
+
 def friendly_source(source: str) -> str:
     """Business-facing description of the guarded explanation path."""
     return "AI-assisted, verified wording" if source == "llm" else "Verified standard wording"
@@ -142,7 +165,7 @@ def friendly_method(method: str) -> str:
     """Translate calculation notation into judge- and customer-ready language."""
     if not method:
         return "The estimate compares the recorded baseline with a documented 12-month scenario."
-    if "EV_AVOIDED_V1" in method:
+    if "EV_AVOIDED_V1" in method or "passenger-car factor" in method:
         return ("We compare emissions from driving the recorded annual distance in the current car "
                 "with the electricity an EV would use for the same distance, using the approved grid factor.")
     if "car_petrol" in method:
@@ -160,19 +183,60 @@ def friendly_method(method: str) -> str:
     if "SOLAR_GENERATION_V1" in method or "PV generation" in method:
         return ("We estimate annual solar generation from the modelled system size and compare the displaced "
                 "grid electricity with the customer's current electricity footprint.")
-    if "PAPER_AVOIDED_V1" in method or "paper statements" in method:
-        return ("We multiply the annual paper statements that could be avoided by the documented per-statement "
-                "factor. Digital adoption is reported separately from carbon impact.")
+    if "PAPER_AVOIDED_V1" in method or "paper statements" in method.lower():
+        return ("We count the paper statements received over the last year that would switch to digital, and the "
+                "sheets of paper they use. We do not estimate carbon for paper because no published factor is available.")
     return method.replace(" x ", " × ")
+
+
+ASSUMPTION_TEXT = {  # plain-language wording; every number comes from the assumptions table
+    "A_EV_KWH_PER_KM": "An electric car uses about {value:g} kWh of electricity per km",
+    "A_GREEN_HOME_GAS_REDUCTION": "Insulation and retrofit upgrades cut gas use by about {percent}",
+    "A_GREEN_HOME_ELECTRICITY_REDUCTION": "The same upgrades cut electricity use by about {percent}",
+    "A_SOLAR_YIELD": "Each kW of solar panels produces about {value:,.0f} kWh a year in the UK",
+    "A_SOLAR_SELF_USE_FRACTION": "About {percent} of the solar electricity is used in your home; the rest goes to the grid",
+    "A_SOLAR_MIN_SYSTEM": "The smallest solar system we model is {value:g} kW",
+    "A_SOLAR_MAX_SYSTEM": "The largest solar system we model is {value:g} kW",
+    "A_PAPER_SHEETS_PER_STATEMENT": "Each paper statement uses about {value:g} sheets of paper",
+}
+FACTOR_NAMES = {
+    "grid_electricity": "UK grid electricity", "natural_gas": "Natural gas",
+    "car_petrol": "Average petrol car", "car_diesel": "Average diesel car", "car_hybrid": "Average hybrid car",
+}
 
 
 def friendly_assumption(item) -> str:
     if isinstance(item, dict):
-        identifier = str(item.get("id", "Assumption")).replace("A_", "").replace("_", " ").title()
-        value, unit = item.get("value"), item.get("unit")
+        value = item.get("value")
+        template = ASSUMPTION_TEXT.get(str(item.get("id")))
+        if template and isinstance(value, (int, float)):
+            return template.format(value=value, percent=f"{100 * value:.0f}%")
+        identifier = str(item.get("id", "Assumption")).removeprefix("A_").replace("_", " ").capitalize()
         rendered = f"{value:g}" if isinstance(value, (int, float)) else str(value)
-        return f"{identifier}: {rendered}{f' {unit}' if unit else ''} — {item.get('source', 'documented scenario assumption')}"
+        unit = f" {item['unit']}" if item.get("unit") else ""
+        return f"{identifier}: {rendered}{unit}"
     return str(item).capitalize()
+
+
+def friendly_factor(factor: dict) -> str:
+    """Readable emission factor: what it measures, its value and who publishes it."""
+    name = FACTOR_NAMES.get(factor.get("activity"), str(factor.get("activity", "Activity")).replace("_", " ").capitalize())
+    value = factor.get("kg_co2e_per_unit")
+    amount = f"{value:.3g} kg CO₂e per {factor.get('unit')}" if isinstance(value, (int, float)) else "value unavailable"
+    source = str(factor.get("source", ""))
+    if "DESNZ" in source:
+        year = factor.get("source_year")
+        source = f"UK Government greenhouse gas conversion factors{f' {year}' if year else ''}"
+    else:
+        source = source.split(" (row")[0]
+    return f"{name}: {amount} ({source})"
+
+
+FOOTPRINT_LABELS = {  # (today, after the change, what is measured)
+    "EV_FINANCE": ("Your car today", "With an electric car", "driving your current yearly distance"),
+    "GREEN_HOME": ("Your home today", "After home upgrades", "your home's yearly gas and electricity use"),
+    "SOLAR_FINANCE": ("Your electricity today", "With solar panels", "the electricity you buy from the grid each year"),
+}
 
 
 def login_screen():
@@ -268,6 +332,7 @@ def canonical_to_ui_record(item: dict) -> dict:
 def load(token: str, role: str, customer_id: str | None):
     del token  # Included in the cache key; requests use the current session token.
     if role == "bank":
+        customer_360 = None
         raw = api_get("/bank/bootstrap", timeout=120)
         recommendations = raw["recommendations"]
         customers = raw["customers"]
@@ -294,10 +359,11 @@ def load(token: str, role: str, customer_id: str | None):
               "energy_saved_kwh", "energy_generated_kwh", "paper_statements_avoided",
               "paper_sheets_avoided", "digital_adoption_shift_pp"]:
         R[k] = imp.map(lambda d: d.get(k))
+    R["cost_saving_central"] = imp.map(lambda d: (cost_metric(d) or {}).get("central"))
     R["product_name"] = R.opportunity.map(PRODUCT_NAME)
     return dict(R=R, C=C, dig=pd.DataFrame(digital), en=pd.DataFrame(energy),
                 report=report, ef=pd.DataFrame(factors), prods=pd.DataFrame(products),
-                scoring_source=scoring_source)
+                scoring_source=scoring_source, c360=customer_360)
 
 
 D = load(access_token, principal.role, principal.customer_id)
@@ -365,16 +431,21 @@ if page == "My green insights":
     prof = profile.iloc[0]
     hero("Your green banking", "Small changes, made relevant to you.",
          "Explore sustainability options suggested from your synthetic demo activity. These are insights, not financial offers or approvals.",
-         [f"Data as of {str(cust.data_timestamp.iloc[0])[:10]}", "Live model + rules + impact engine", "Eligibility checked separately"])
+         [f"Data as of {str(cust.data_timestamp.iloc[0])[:10]}", "Personalised to your activity", "Eligibility checked separately"])
     st.markdown(f"""<div class="profile-strip"><div class="profile-id">Hello, {html.escape(str(cid))}</div>
         <div class="profile-meta">{html.escape(str(prof.region))} · digital banking profile · your recommendations are private to this signed-in demo account</div></div>""",
         unsafe_allow_html=True)
     flagged = cust[cust.recommend].sort_values("propensity", ascending=False)
     a, b, c = st.columns(3)
     a.metric("Ideas for you", len(flagged))
-    b.metric("Highest relevance", "High" if len(flagged) and flagged.propensity.max() >= .65 else "Medium" if len(flagged) else "None")
-    b.caption("Relevance is take-up propensity, not financial eligibility.")
-    c.metric("Data freshness", str(cust.data_timestamp.iloc[0])[:10])
+    priced = flagged[flagged.cost_saving_central.notna() & (flagged.cost_saving_central > 0)]
+    if len(priced):
+        best = priced.loc[priced.cost_saving_central.idxmax()]
+        b.metric("Largest estimated saving", f"about {money_text(best.cost_saving_central)} a year")
+        b.caption(f"From {PRODUCT_NAME[best.opportunity]}. Running costs only; savings from different ideas can overlap, so don't add them up.")
+    else:
+        b.metric("Largest estimated saving", "Not available")
+    c.metric("Based on your data up to", pd.Timestamp(str(cust.data_timestamp.iloc[0])[:10]).strftime("%-d %b %Y"))
     st.markdown("### Your personalised insights")
     if flagged.empty:
         st.info("There are no new green insights for you right now. We do not force a recommendation when the evidence is weak.")
@@ -400,8 +471,22 @@ if page == "My green insights":
                 else:
                     baseline = impact.get("baseline_kg_co2e")
                     scenario = impact.get("scenario_kg_co2e")
-                    metrics[1].metric("Current baseline", f"{baseline:,.0f} kg/year" if baseline is not None else "Not provided")
-                    metrics[2].metric("Modelled scenario", f"{scenario:,.0f} kg/year" if scenario is not None else "Not provided")
+                    today, after, activity = FOOTPRINT_LABELS.get(r.opportunity, ("Today", "After the change", "this activity"))
+                    metrics[1].metric(today, f"{baseline:,.0f} kg/year" if baseline is not None else "Not available",
+                                      help=f"Estimated yearly CO₂e from {activity} as things are now, based on your recorded usage.")
+                    metrics[2].metric(after, f"{scenario:,.0f} kg/year" if scenario is not None else "Not available",
+                                      help=f"Estimated yearly CO₂e from {activity} after the change, using our central assumptions.")
+                    if baseline is not None and scenario is not None:
+                        st.caption(f"**{today}** is the estimated yearly CO₂e from {activity} now. **{after}** is the same "
+                                   f"activity after the change. The difference, about {baseline - scenario:,.0f} kg a year, is "
+                                   "our central estimate; the range shows what lower and higher assumptions give.")
+                cost = cost_metric(impact)
+                if cost:
+                    money, basis = st.columns([1, 2])
+                    money.metric("Estimated yearly saving", money_range_text(cost),
+                                 help="Estimated change in your yearly running costs, from your own recorded bills and spending.")
+                    basis.caption(f"{COST_BASIS.get(r.opportunity, '')} About {money_text(cost['central'])} a year in our "
+                                  f"central case. {COST_CAVEAT}")
                 with st.expander("How this estimate was calculated"):
                     st.markdown(f"**Method**  \n{friendly_method(impact.get('method', ''))}")
                     assumptions = impact.get("assumptions", [])
@@ -410,8 +495,8 @@ if page == "My green insights":
                         st.markdown("  \n".join(f"- {friendly_assumption(item)}" for item in assumptions))
                     factors = impact.get("factors", [])
                     if factors:
-                        st.markdown("**Factor provenance**")
-                        st.markdown("  \n".join(f"- {factor['factor_id']}: {factor['kg_co2e_per_unit']} kg CO₂e/{factor['unit']} — {factor['source']}" for factor in factors))
+                        st.markdown("**Emission factors used**")
+                        st.markdown("  \n".join(f"- {friendly_factor(factor)}" for factor in factors))
                     st.caption("This is a modelled 12-month estimate, not a measured reduction.")
             elif impact.get("status") == "INSUFFICIENT_DATA":
                 st.warning("We need more information before we can estimate the potential impact.")
@@ -424,6 +509,77 @@ if page == "My green insights":
                          args=(cid, r.opportunity, "Not now"), use_container_width=True)
             status.caption(f"Saved preference: {saved}" if saved else "No preference saved in this demo session.")
     st.caption("Any product application remains subject to the institution's authorised affordability, suitability and eligibility checks.")
+
+elif page == "My profile":
+    c360 = D.get("c360")
+    if not c360:
+        st.error("Your profile is not available right now.")
+        st.stop()
+    feat, prof = c360["features"], c360["profile"]
+    as_of = pd.Timestamp(str(c360["data_as_of"])[:10]).strftime("%-d %B %Y")
+    hero("Your profile", "Your banking at a glance.",
+         "The information we used to tailor your green ideas, summarised in plain language.",
+         [f"Data up to {as_of}", "Aggregated monthly figures", "Private to your account"])
+
+    def show(value, unit="", money=False, decimals=0):
+        if value is None:
+            return "Not recorded"
+        return f"£{value:,.{decimals}f}{unit}" if money else f"{value:,.{decimals}f}{unit}"
+
+    with st.container(border=True):
+        st.markdown("<div class='section-kicker'>Summary</div>", unsafe_allow_html=True)
+        with st.spinner("Preparing your summary…"):
+            summary, source = summarise_profile(c360, use_llm=ollama_configured())
+        st.write(summary)
+        st.caption(f"{friendly_source(source)} · based only on the figures shown on this page")
+
+    st.markdown("### Home and energy")
+    h = st.columns(3)
+    h[0].metric("Home", "Owner" if prof.get("home_owner") else "Not recorded as owner", help="From your account records.")
+    h[1].metric("Electricity per year", show(feat.get("electricity_kwh_12m"), " kWh"),
+                f"about {show(feat.get('electricity_spend_12m'), money=True)} a year" if feat.get("electricity_spend_12m") else None,
+                delta_color="off")
+    h[2].metric("Gas per year", show(feat.get("gas_kwh_12m"), " kWh"),
+                f"about {show(feat.get('gas_spend_12m'), money=True)} a year" if feat.get("gas_spend_12m") else None,
+                delta_color="off")
+
+    st.markdown("### Getting around")
+    vehicle = c360.get("vehicle")
+    g = st.columns(3)
+    if vehicle:
+        fuel = {"ev": "Electric"}.get(str(vehicle.get("fuel_type", "")).lower(), str(vehicle.get("fuel_type", "")).capitalize())
+        body = str(vehicle.get("vehicle_type", "vehicle"))
+        g[0].metric("Your vehicle", f"{fuel} {body.upper() if body.lower() == 'suv' else body.lower()}",
+                    f"about {vehicle['vehicle_age']:.0f} years old" if vehicle.get("vehicle_age") is not None else None, delta_color="off")
+        g[1].metric("Miles per year", show(vehicle.get("annual_mileage")))
+        g[2].metric("Fuel spend per year", show(feat.get("fuel_spend_12m"), money=True))
+    else:
+        g[0].metric("Your vehicle", "None on record")
+    if feat.get("public_transport_spend_12m"):
+        st.caption(f"You also spend about {show(feat['public_transport_spend_12m'], money=True)} a year on public transport.")
+
+    st.markdown("### Everyday banking")
+    b = st.columns(3)
+    b[0].metric("Digital transactions", show(feat.get("digital_transactions_per_month"), " a month"))
+    visits = feat.get("branch_visits_per_month")
+    b[1].metric("Branch visits", "Rarely" if visits is not None and round(visits) == 0 else show(visits, " a month"))
+    b[2].metric("Paper statements", show(feat.get("paper_statements_12m"), " last year"))
+
+    held = sorted({PRODUCT_LABELS.get(h["product"], h["product"].replace("_", " ").lower()) for h in c360.get("holdings", [])},
+                  key=lambda label: label != "a current account")
+    if held:
+        st.markdown("### Your accounts with us")
+        st.markdown("  \n".join(f"- {label[0].upper()}{label[1:]}" for label in held))
+
+    spend = {name: amount for name, amount in (feat.get("monthly_spend_by_category") or {}).items() if amount}
+    if spend:
+        st.markdown("### Where your money goes each month")
+        chart = pd.DataFrame({"Category": list(spend), "Average per month (£)": list(spend.values())}).sort_values("Average per month (£)")
+        figure = px.bar(chart, x="Average per month (£)", y="Category", orientation="h", color_discrete_sequence=[GREEN],
+                        text=chart["Average per month (£)"].map(lambda v: f"£{v:,.0f}"))
+        st.plotly_chart(plot(figure, height=360), width="stretch")
+        st.caption("Average monthly spending over the last 12 months, grouped from your transactions.")
+    st.caption("All figures are 12-month averages from this synthetic demo account. If something looks wrong, contact us so it can be corrected.")
 
 # ----------------------------------------------------------------------------- 1. business dashboard
 elif page == "Executive overview":

@@ -130,7 +130,51 @@ def contract_impact(product: str, row) -> dict:
     result.update(baseline_kg_co2e=raw["baseline_kg_co2e"], scenario_kg_co2e=raw["scenario_kg_co2e"],
                   avoided_kg_co2e_per_year=co2["central"], estimate_low=co2["low"], estimate_central=co2["central"],
                   estimate_high=co2["high"])
+    saving = cost_saving(product, row, raw)
+    if saving:
+        result["metrics"].append(saving)
     return result
+
+
+def _positive(row, key) -> float | None:
+    try:
+        value = float(row.get(key))
+    except (TypeError, ValueError):
+        return None
+    return value if value > 0 and value == value else None
+
+
+def cost_saving(product: str, row, raw: dict) -> dict | None:
+    """Yearly running-cost saving in GBP, priced only from the customer's own recorded bills and spend.
+
+    The electricity price is the customer's average cost per kWh (yearly bill / yearly kWh, so it includes
+    standing charges). Purchase, installation, finance repayments and export payments are excluded.
+    Returns None when the customer's own spend data cannot price the scenario.
+    """
+    elec_bill = None if _positive(row, "spend_electricity_m") is None else 12 * _positive(row, "spend_electricity_m")
+    elec_kwh = _positive(row, "elec_kwh_yr")
+    elec_price = elec_bill / elec_kwh if elec_bill and elec_kwh else None
+    points = ("low", "central", "high")
+    if product == "EV_FINANCE":
+        fuel_cost, km = _positive(row, "fuel_spend_m"), float(raw["inputs"]["annual_km"])
+        if fuel_cost is None or elec_price is None:
+            return None
+        values = [12 * fuel_cost - km * _assumption("A_EV_KWH_PER_KM", point) * elec_price for point in points]
+    elif product == "GREEN_HOME":
+        gas_bill = None if _positive(row, "spend_gas_m") is None else 12 * _positive(row, "spend_gas_m")
+        if gas_bill is None or elec_bill is None:
+            return None
+        values = [gas_bill * _assumption("A_GREEN_HOME_GAS_REDUCTION", point)
+                  + elec_bill * _assumption("A_GREEN_HOME_ELECTRICITY_REDUCTION", point) for point in points]
+    elif product == "SOLAR_FINANCE":
+        if elec_price is None:
+            return None
+        generated = float(raw["generation_kwh"])
+        values = [min(elec_kwh, generated * _assumption("A_SOLAR_SELF_USE_FRACTION", point)) * elec_price for point in points]
+    else:
+        return None
+    return {"metric": "COST_SAVING_GBP", "unit": "GBP per year",
+            **{key: round(value) for key, value in zip(points, sorted(values))}}
 
 
 def contract_reasons(model, X: pd.DataFrame, top_k: int = 3) -> list[list[str]]:

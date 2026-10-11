@@ -66,6 +66,23 @@ class CarbonEngineTests(unittest.TestCase):
         self.assertEqual(impact["status"], "INSUFFICIENT_DATA")
         self.assert_contract_valid(impact)
 
+    def test_cost_saving_is_priced_from_the_customers_own_bills(self):
+        row = pd.Series({**ROW, "spend_electricity_m": 70.0, "spend_gas_m": 80.0, "fuel_spend_m": 100.0})
+        home = next(m for m in estimate_impact("GREEN_HOME", row)["metrics"] if m["metric"] == "COST_SAVING_GBP")
+        self.assertEqual(home["central"], round(960 * 0.20 + 840 * 0.05))  # gas bill x 20% + electricity bill x 5%
+        self.assertLess(home["low"], home["central"])
+        self.assertLess(home["central"], home["high"])
+        ev = next(m for m in estimate_impact("EV_FINANCE", row)["metrics"] if m["metric"] == "COST_SAVING_GBP")
+        price = 840 / 3500  # this customer's average electricity price per kWh
+        self.assertEqual(ev["central"], round(1200 - 9000 * 1.609344 * 0.20 * price))
+        for product in ["EV_FINANCE", "GREEN_HOME", "SOLAR_FINANCE"]:
+            self.assert_contract_valid(estimate_impact(product, row))
+
+    def test_no_cost_saving_without_spend_data(self):
+        for product in ["EV_FINANCE", "GREEN_HOME", "SOLAR_FINANCE", "PAPERLESS"]:
+            metrics = [m["metric"] for m in estimate_impact(product, ROW)["metrics"]]
+            self.assertNotIn("COST_SAVING_GBP", metrics)
+
     def test_assumption_table_matches_engine_constants(self):
         self.assertEqual(engine_assumption_drift(), {})
 

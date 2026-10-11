@@ -264,13 +264,33 @@ def customer_360(customer_id: str) -> dict | None:
             "SELECT vehicle_type, fuel_type, vehicle_age, annual_mileage FROM vehicles WHERE customer_id = ?",
             database, params=(customer_id,),
         )
+    def value(column: str, scale: float = 1.0) -> float | None:
+        raw = feature.get(column)
+        return None if raw is None or pd.isna(raw) else round(float(raw) * scale, 2)
+
     selected_features = {
-        "fuel_spend_12m": round(float(feature.fuel_spend_m) * 12, 2),
-        "annual_mileage": None if pd.isna(feature.annual_mileage) else float(feature.annual_mileage),
-        "electricity_kwh_12m": None if pd.isna(feature.elec_kwh_yr) else float(feature.elec_kwh_yr),
-        "paper_statement_ratio": None if pd.isna(feature.paper_share) else float(feature.paper_share),
+        "fuel_spend_12m": value("fuel_spend_m", 12),
+        "annual_mileage": value("annual_mileage"),
+        "electricity_kwh_12m": value("elec_kwh_yr"),
+        "paper_statement_ratio": value("paper_share"),
     }
-    missing = [name for name, value in selected_features.items() if value is None]
+    missing = [name for name, item in selected_features.items() if item is None]
+    selected_features.update({  # extra plain-language profile figures; not part of the completeness score
+        "electricity_spend_12m": value("spend_electricity_m", 12),
+        "gas_kwh_12m": value("gas_kwh_yr"),
+        "gas_spend_12m": value("spend_gas_m", 12),
+        "public_transport_spend_12m": value("spend_public_transport_m", 12),
+        "digital_transactions_per_month": value("digital_tx_m"),
+        "branch_visits_per_month": value("branch_visits_m"),
+        "paper_statements_12m": value("paper_stmts_yr"),
+        "monthly_spend_by_category": {
+            name: value(column) for name, column in [
+                ("Fuel", "spend_fuel_m"), ("Electricity", "spend_electricity_m"), ("Gas", "spend_gas_m"),
+                ("Public transport", "spend_public_transport_m"), ("Home improvement", "spend_home_improvement_m"),
+                ("Car costs", "spend_automotive_m"), ("Other utilities", "spend_utilities_m"), ("Everything else", "spend_other_m"),
+            ]
+        },
+    })
     completeness = round(1 - len(missing) / len(selected_features), 2)
     return {
         "customer_id": customer_id,
@@ -402,6 +422,9 @@ def _canonicalise(records: list[dict], source: str, include_suppressed: bool) ->
         # Contract fields only, for every status (display extras such as "product" or "horizon" stay internal).
         canonical_impact = {key: canonical_impact[key] for key in
                             ["status", "is_estimate", "horizon_months", "method", "metrics", "assumptions", "factors", "missing_inputs"]}
+        for key in ("baseline_kg_co2e", "scenario_kg_co2e"):  # optional central-case footprints (CO2 products only)
+            if impact.get(key) is not None:
+                canonical_impact[key] = impact[key]
         central = None
         if impact.get("metrics"):
             central = impact["metrics"][0]["central"]

@@ -91,7 +91,7 @@
       "type": "object",
       "required": ["metric", "unit", "low", "central", "high"],
       "properties": {
-        "metric": {"enum": ["CO2E_KG", "ENERGY_KWH", "PAPER_SHEETS", "DIGITAL_ADOPTION_PP"]},
+        "metric": {"enum": ["CO2E_KG", "ENERGY_KWH", "PAPER_SHEETS", "DIGITAL_ADOPTION_PP", "COST_SAVING_GBP"]},
         "unit": {"type": "string", "minLength": 1},
         "low": {"type": "number"},
         "central": {"type": "number"},
@@ -134,6 +134,8 @@
         "metrics": {"type": "array", "items": {"$ref": "#/$defs/metric"}},
         "assumptions": {"type": "array", "items": {"$ref": "#/$defs/assumption"}},
         "factors": {"type": "array", "items": {"$ref": "#/$defs/factor"}},
+        "baseline_kg_co2e": {"type": ["number", "null"]},
+        "scenario_kg_co2e": {"type": ["number", "null"]},
         "missing_inputs": {
           "type": "array",
           "items": {"type": "string", "minLength": 1},

@@ -116,6 +116,41 @@ class InsightLayerTests(unittest.TestCase):
         _, source, _ = self.explain_with(payload, good + " That avoids a little carbon too.")
         self.assertEqual(source, "template (llm rejected: carbon claim without a sourced factor)")
 
+    PROFILE = {
+        "customer_id": "C99999", "data_as_of": "2025-12-31",
+        "profile": {"region": "Wales", "home_owner": 1, "postcode": "CF10 1AA", "income_band": "50-80k"},
+        "features": {"electricity_kwh_12m": 3233.7, "electricity_spend_12m": 920.9, "gas_kwh_12m": 15008.9,
+                     "gas_spend_12m": 1139.6, "fuel_spend_12m": 1106.1, "digital_transactions_per_month": 56.1,
+                     "branch_visits_per_month": 0.0, "paper_statements_12m": 1.0},
+        "vehicle": {"vehicle_type": "SUV", "fuel_type": "diesel", "vehicle_age": 6.3, "annual_mileage": 7600.0},
+        "holdings": [{"product": "MORTGAGE"}, {"product": "CURRENT_ACCOUNT"}],
+    }
+
+    def test_profile_facts_exclude_identifiers_and_read_naturally(self):
+        facts = insight_layer.profile_facts(self.PROFILE)
+        flat = " ".join(str(value) for value in facts.values())
+        for private in ("CF10", "C99999", "50-80k"):
+            self.assertNotIn(private, flat)
+        text, source = insight_layer.summarise_profile(self.PROFILE, use_llm=False)
+        self.assertEqual(source, "template")
+        self.assertIn("You drive a 6-year-old diesel SUV", text)
+        self.assertIn("rarely visit a branch", text)
+        self.assertIn("1 paper statement in", text)
+        self.assertIn("a current account and a mortgage", text)
+
+    def test_profile_summary_rejects_advice_and_invented_numbers(self):
+        good = "You own your home in Wales. Your home uses about 3,234 kWh of electricity (about £921) a year."
+        with patch.dict(os.environ, self.CLOUD_ENV, clear=True), patch("insight_layer.requests.post", return_value=reply(good)):
+            text, source = insight_layer.summarise_profile(self.PROFILE)
+        self.assertEqual(source, "llm")
+        self.assertTrue(text.endswith("Based on your data up to 2025-12-31."))
+        for bad, reason in [(good + " You should consider solar panels.", "advice or forbidden wording"),
+                            (good + " That is about £2,000 a year.", "ungrounded number")]:
+            insight_layer._EXPLANATION_CACHE.clear()
+            with patch.dict(os.environ, self.CLOUD_ENV, clear=True), patch("insight_layer.requests.post", return_value=reply(bad)):
+                _, source = insight_layer.summarise_profile(self.PROFILE)
+            self.assertEqual(source, f"template (llm rejected: {reason})")
+
     def test_suppressed_payload_never_reaches_llm(self):
         with patch.dict(os.environ, self.CLOUD_ENV, clear=True), patch("insight_layer.requests.post") as post:
             _, source = explain({**ESTIMATE_PAYLOAD, "recommended": False})

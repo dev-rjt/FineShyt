@@ -170,7 +170,7 @@ def ollama_configured() -> bool:
         return False
 
 
-def _ollama_explain(facts: dict, timeout: float | None = None) -> str:
+def _ollama_explain(facts: dict, timeout: float | None = None, system: str = SYSTEM) -> str:
     base_url, model, api_key, configured_timeout = _ollama_config()
     timeout = configured_timeout if timeout is None else min(configured_timeout, timeout)
     headers = {"Content-Type": "application/json"}
@@ -182,7 +182,7 @@ def _ollama_explain(facts: dict, timeout: float | None = None) -> str:
         json={
             "model": model,
             "messages": [
-                {"role": "system", "content": SYSTEM},
+                {"role": "system", "content": system},
                 {"role": "user", "content": json.dumps(facts, default=str)},
             ],
             "stream": False,
@@ -256,7 +256,7 @@ def verify_llm_text(text: str, facts: dict, data_as_of: str) -> str | None:
         return "forbidden wording"
     if "%" in text:
         return "percentage"
-    allowed = {_norm(n) for n in _numbers(json.dumps(facts) + " " + data_as_of)}
+    allowed = {_norm(n) for n in _numbers(json.dumps(facts, ensure_ascii=False) + " " + data_as_of)}  # keep "£" unescaped
     numbers = {_norm(n) for n in _numbers(text)}
     if numbers - allowed:
         return "ungrounded number"
@@ -305,6 +305,136 @@ def explain(p: dict, use_llm: bool = True, timeout: float | None = None):
     else:
         tail = COMPLIANCE_TAIL.format(data_as_of=p["data_as_of"])
         result = f"{text if text.endswith(('.', '!')) else text + '.'} {tail}", "llm"
+    with _CACHE_LOCK:
+        if len(_EXPLANATION_CACHE) >= _CACHE_LIMIT:
+            _EXPLANATION_CACHE.clear()
+        _EXPLANATION_CACHE[key] = result
+    return result
+
+
+PROFILE_SYSTEM = (
+    "You write a short, friendly summary of a bank customer's own profile from a JSON object of verified facts.\n"
+    "Rules:\n"
+    "- Write 3 or 4 plain sentences in the second person (\"you\"), under 90 words. No lists, headings or markdown.\n"
+    "- Use only the facts given and copy every number exactly as written. Never calculate, round, convert or add numbers. "
+    "Never use percentages.\n"
+    "- Describe; do not advise. Never suggest products, changes or savings, and never comment on income or wealth.\n"
+    "- Do not mention dates, names, identifiers or the bank; those are handled separately."
+)
+ADVICE = re.compile(r"\b(should|recommend\w*|consider\w*|suggest\w*|you could|try|save money|switch)\b", re.IGNORECASE)
+PRODUCT_LABELS = {
+    "CURRENT_ACCOUNT": "a current account", "CREDIT_CARD": "a credit card", "MORTGAGE": "a mortgage",
+    "SAVINGS": "a savings account", "INVESTMENT_ISA": "an investment ISA", "PERSONAL_LOAN": "a personal loan",
+    "VEHICLE_LOAN": "car finance", "GP01": "EV Finance", "GP02": "a Green Home Loan", "GP03": "Solar Finance",
+    "GP04": "Paperless Banking",
+}
+
+
+def _whole(value) -> str | None:
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return None
+    return f"{round(number):,}" if number == number else None
+
+
+FUEL_WORDS = {"ev": "electric", "electric": "electric", "petrol": "petrol", "diesel": "diesel", "hybrid": "hybrid"}
+
+
+def _plural(count: str, word: str) -> str:
+    return f"{count} {word}" if count == "1" else f"{count} {word}s"
+
+
+def _join(items: list[str]) -> str:
+    return items[0] if len(items) == 1 else ", ".join(items[:-1]) + " and " + items[-1]
+
+
+def profile_facts(c360: dict) -> dict:
+    """Allow-listed, pre-formatted profile facts (no postcode, IDs, income or balances); each value reads as a sentence."""
+    profile, features = c360.get("profile", {}), c360.get("features", {})
+    region = profile.get("region")
+    if profile.get("home_owner"):
+        facts = {"home": f"You own your home{f' in {region}' if region else ''}."}
+    else:
+        facts = {"home": f"You live in {region or 'the UK'}; we have no home ownership on record."}
+    energy = []
+    for kind, kwh_key, bill_key in [("electricity", "electricity_kwh_12m", "electricity_spend_12m"), ("gas", "gas_kwh_12m", "gas_spend_12m")]:
+        kwh, bill = _whole(features.get(kwh_key)), _whole(features.get(bill_key))
+        if kwh and kwh != "0":
+            energy.append(f"about {kwh} kWh of {kind}" + (f" (about £{bill})" if bill and bill != "0" else ""))
+    if energy:
+        facts["home_energy"] = f"Your home uses {_join(energy)} a year."
+    vehicle = c360.get("vehicle")
+    if vehicle:
+        fuel = FUEL_WORDS.get(str(vehicle.get("fuel_type") or "").lower(), "")
+        body = str(vehicle.get("vehicle_type") or "vehicle")
+        body = body.upper() if body.lower() == "suv" else body.lower()
+        age, miles = _whole(vehicle.get("vehicle_age")), _whole(vehicle.get("annual_mileage"))
+        described = " ".join(part for part in [f"{age}-year-old" if age else "", fuel, body] if part)
+        article = "an" if described[0] in "aeiou8" or described.startswith(("11-", "18-")) else "a"
+        sentence = f"You drive {article} {described}" + (f" about {miles} miles a year" if miles else "")
+        fuel_spend = _whole(features.get("fuel_spend_12m"))
+        facts["travel"] = sentence + (f" and spend about £{fuel_spend} a year on fuel." if fuel_spend and fuel_spend != "0" else ".")
+    else:
+        facts["travel"] = "You have no vehicle on record."
+    transit = _whole(features.get("public_transport_spend_12m"))
+    if transit and transit != "0":
+        facts["public_transport"] = f"You spend about £{transit} a year on public transport."
+    digital, visits = _whole(features.get("digital_transactions_per_month")), _whole(features.get("branch_visits_per_month"))
+    statements = _whole(features.get("paper_statements_12m"))
+    habits = []
+    if digital:
+        habits.append(f"make about {_plural(digital, 'digital transaction')} a month")
+    if visits is not None:
+        habits.append("rarely visit a branch" if visits == "0" else f"visit a branch about {_plural(visits, 'time')} a month")
+    if habits:
+        facts["banking"] = f"You {_join(habits)}."
+    if statements is not None:
+        facts["statements"] = f"You received {_plural(statements, 'paper statement')} in the last year."
+    held = [PRODUCT_LABELS[h["product"]] for h in c360.get("holdings", []) if h.get("product") in PRODUCT_LABELS]
+    if held:
+        ordered = sorted(dict.fromkeys(held), key=lambda label: label != "a current account")
+        facts["products_held"] = f"Your accounts with us include {_join(ordered)}."
+    return facts
+
+
+def template_profile(facts: dict) -> str:
+    order = ["home", "home_energy", "travel", "public_transport", "banking", "statements", "products_held"]
+    return " ".join(facts[key] for key in order if facts.get(key))
+
+
+def verify_profile_text(text: str, facts: dict, data_as_of: str) -> str | None:
+    if not 60 <= len(text) <= 900:
+        return "length"
+    if BANNED.search(text) or ADVICE.search(text):
+        return "advice or forbidden wording"
+    if "%" in text:
+        return "percentage"
+    allowed = {_norm(n) for n in _numbers(json.dumps(facts, ensure_ascii=False) + " " + data_as_of)}  # keep "£" unescaped
+    if {_norm(n) for n in _numbers(text)} - allowed:
+        return "ungrounded number"
+    return None
+
+
+def summarise_profile(c360: dict, use_llm: bool = True, timeout: float | None = None):
+    """Returns (text, source) like explain(): verified LLM wording or the deterministic template."""
+    facts = profile_facts(c360)
+    tail = f" Based on your data up to {c360.get('data_as_of', 'the latest update')}."
+    if not (use_llm and ollama_configured()):
+        return template_profile(facts) + tail, "template"
+    base_url, model, _, _ = _ollama_config()
+    key = "profile:" + hashlib.sha256(json.dumps([base_url, model, PROFILE_SYSTEM, facts], sort_keys=True).encode()).hexdigest()
+    with _CACHE_LOCK:
+        cached = _EXPLANATION_CACHE.get(key)
+    if cached:
+        return cached
+    try:
+        text = _clean(_ollama_explain(facts, timeout, PROFILE_SYSTEM))
+    except Exception as e:  # never break the page; not cached so it retries later
+        return template_profile(facts) + tail, f"template (llm error: {type(e).__name__})"
+    problem = verify_profile_text(text, facts, str(c360.get("data_as_of", "")))
+    result = ((template_profile(facts) + tail, f"template (llm rejected: {problem})") if problem
+              else (f"{text if text.endswith(('.', '!')) else text + '.'}{tail}", "llm"))
     with _CACHE_LOCK:
         if len(_EXPLANATION_CACHE) >= _CACHE_LIMIT:
             _EXPLANATION_CACHE.clear()
