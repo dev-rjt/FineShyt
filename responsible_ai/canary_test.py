@@ -37,7 +37,7 @@ def assert_no_canary(paths, token=CANARY):
 def run_canary(data_root="data", *, scan_paths=(), records_path=None):
     root = Path(data_root).resolve()
     with tempfile.TemporaryDirectory(prefix="rai-canary-") as directory:
-        temp = Path(directory)
+        temp = Path(directory).resolve()
         copied = temp / "data"
         for source in source_files(root):
             destination = copied / source.relative_to(root)

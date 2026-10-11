@@ -8,7 +8,7 @@ Set OLLAMA_API_KEY for Ollama Cloud, or point OLLAMA_BASE_URL at a local Ollama
 server. Without a usable Ollama configuration the same facts are rendered by the
 deterministic template.
 """
-import json, math, os, re
+import hashlib, json, math, os, re, threading
 from urllib.parse import urlsplit
 
 import requests
@@ -94,9 +94,31 @@ def template_explain(p: dict) -> str:
     return s
 
 
-SYSTEM = ("You rewrite a JSON object into 2-4 friendly sentences for a bank customer. Use ONLY facts and numbers in the JSON. "
-          "Do not invent figures, do not calculate, do not promise approval or eligibility. Say carbon figures are estimates. "
-          "If impact_status is INSUFFICIENT_DATA say so plainly. Mention the data_as_of date. End with the action.")
+SYSTEM = (
+    "You write a short, warm explanation for a bank customer from a JSON object of verified facts.\n"
+    "Rules:\n"
+    "- Write 2 or 3 plain sentences, under 70 words. No lists, headings or markdown.\n"
+    "- Start by naming the product and saying it may suit them, then explain why using only the items in \"reasons\", "
+    "in your own words.\n"
+    "- If impact_status is \"ESTIMATE\": say switching could potentially avoid between co2e_low and co2e_high followed by "
+    "\"unit\", copied exactly, and say this is an estimate, not a measured result. If paper_statements_avoided_per_year is present, also "
+    "mention the paper statements (and sheets) avoided each year. Keep paper and carbon figures separate; never add them.\n"
+    "- If impact_status is \"INSUFFICIENT_DATA\": say we do not have enough data to estimate the carbon impact yet, "
+    "with no figures.\n"
+    "- If impact_status is \"NOT_AVAILABLE\": do not mention any carbon figure.\n"
+    "- Copy numbers exactly as written in the JSON. Never round, convert, calculate or add numbers. Never use percentages.\n"
+    "- Never say the customer is eligible, approved, pre-approved, qualifies or is guaranteed anything. "
+    "Never say \"we recommend\" and never promise savings.\n"
+    "- Do not mention dates, eligibility checks, offers or next steps; those are added separately."
+)
+COMPLIANCE_TAIL = ("This is an indication of interest, not an offer or approval, and is subject to eligibility checks. "
+                   "Based on data as of {data_as_of}.")
+BANNED = re.compile(r"\b(eligib\w*|approv\w*|pre-approv\w*|qualif\w*|guarantee\w*|we recommend|definitely|certainly|"
+                    r"will (save|reduce|cut|lower))\b", re.IGNORECASE)
+NO_DATA = re.compile(r"(not|n't) (have )?enough data|insufficient data|(unable|not able|cannot|can't) (to )?estimate", re.IGNORECASE)
+_EXPLANATION_CACHE: dict[str, tuple[str, str]] = {}
+_CACHE_LOCK = threading.Lock()
+_CACHE_LIMIT = 4096
 
 DEFAULT_OLLAMA_MODEL = "gemma4:31b"
 DEFAULT_OLLAMA_BASE_URL = "https://ollama.com"
@@ -138,8 +160,9 @@ def ollama_configured() -> bool:
         return False
 
 
-def _ollama_explain(p: dict) -> str:
-    base_url, model, api_key, timeout = _ollama_config()
+def _ollama_explain(facts: dict, timeout: float | None = None) -> str:
+    base_url, model, api_key, configured_timeout = _ollama_config()
+    timeout = configured_timeout if timeout is None else min(configured_timeout, timeout)
     headers = {"Content-Type": "application/json"}
     if api_key:
         headers["Authorization"] = f"Bearer {api_key}"
@@ -150,7 +173,7 @@ def _ollama_explain(p: dict) -> str:
             "model": model,
             "messages": [
                 {"role": "system", "content": SYSTEM},
-                {"role": "user", "content": json.dumps(p, default=str)},
+                {"role": "user", "content": json.dumps(facts, default=str)},
             ],
             "stream": False,
             "options": {"temperature": 0, "seed": 2026, "num_predict": 300},
@@ -182,12 +205,96 @@ def is_grounded(text: str, p: dict) -> bool:
     return True
 
 
-def explain(p: dict, use_llm: bool = True):
-    """Returns (text, source) where source in {'llm','template','template (llm rejected)'}"""
+def _fmt(value) -> str:
+    return f"{value:,}" if isinstance(value, (int, float)) and not isinstance(value, bool) else str(value)
+
+
+def _norm(number: str) -> str:
+    number = number.replace(",", "").rstrip(".")
+    return number.rstrip("0").rstrip(".") if "." in number else number
+
+
+def llm_facts(p: dict) -> dict:
+    """The only data the LLM sees: no scores, factors or IDs, and figures pre-formatted like the template."""
+    facts = {"product": p["product"], "reasons": p["reasons_plain"][:3] or ["your recent activity"]}
+    low = p.get("estimate_low", p.get("avoided_kg_co2e_per_year"))
+    high = p.get("estimate_high", p.get("avoided_kg_co2e_per_year"))
+    if p["impact_status"] == "OK" and low is not None and high is not None:
+        if p["product"] == "Paperless Banking" and "paper_statements_avoided" in p:
+            facts.update(impact_status="ESTIMATE", co2e_low=_fmt(low), co2e_high=_fmt(high), unit="kg CO2e per year",
+                         paper_statements_avoided_per_year=_fmt(p["paper_statements_avoided"]))
+            if "paper_sheets_avoided" in p:
+                facts["paper_sheets_avoided_per_year"] = _fmt(p["paper_sheets_avoided"])
+        elif p.get("horizon"):
+            facts.update(impact_status="ESTIMATE", co2e_low=_fmt(low), co2e_high=_fmt(high),
+                         unit=f"kg CO2e per {p['horizon'].replace('12 months', 'year')}")
+        else:
+            facts["impact_status"] = "NOT_AVAILABLE"
+    elif p["impact_status"] == "INSUFFICIENT_DATA":
+        facts["impact_status"] = "INSUFFICIENT_DATA"
+    else:
+        facts["impact_status"] = "NOT_AVAILABLE"
+    return facts
+
+
+def verify_llm_text(text: str, facts: dict, data_as_of: str) -> str | None:
+    """Return None when the text meets the template's standard, otherwise a short rejection reason."""
+    if not 40 <= len(text) <= 700:
+        return "length"
+    if facts["product"].casefold() not in text.casefold():
+        return "product not named"
+    if BANNED.search(text):
+        return "forbidden wording"
+    if "%" in text:
+        return "percentage"
+    allowed = {_norm(n) for n in _numbers(json.dumps(facts) + " " + data_as_of)}
+    numbers = {_norm(n) for n in _numbers(text)}
+    if numbers - allowed:
+        return "ungrounded number"
+    status = facts["impact_status"]
+    if status == "ESTIMATE":
+        required = {_norm(facts["co2e_low"]), _norm(facts["co2e_high"])}
+        if "paper_statements_avoided_per_year" in facts:
+            required.add(_norm(facts["paper_statements_avoided_per_year"]))
+        if not required <= numbers:
+            return "missing estimate range"
+        if "estimat" not in text.casefold():
+            return "figure not called an estimate"
+    elif status == "INSUFFICIENT_DATA" and not NO_DATA.search(text):
+        return "missing insufficient-data statement"
+    return None  # NOT_AVAILABLE facts hold no figures, so the grounding check already rejects any number
+
+
+def _clean(text: str) -> str:
+    return re.sub(r"\s+", " ", text.replace("**", "")).strip()
+
+
+def explain(p: dict, use_llm: bool = True, timeout: float | None = None):
+    """Returns (text, source) where source is 'llm', 'template', 'template (llm rejected: ...)' or 'template (llm error: ...)'.
+
+    LLM text must pass verify_llm_text; the compliance sentence is always appended by code, never written by the LLM.
+    """
     if not (use_llm and p["recommended"] and ollama_configured()):
         return template_explain(p), "template"
+    facts = llm_facts(p)
+    base_url, model, _, _ = _ollama_config()
+    key = hashlib.sha256(json.dumps([base_url, model, SYSTEM, facts, p["data_as_of"]], sort_keys=True).encode()).hexdigest()
+    with _CACHE_LOCK:
+        cached = _EXPLANATION_CACHE.get(key)
+    if cached:
+        return cached
     try:
-        text = _ollama_explain(p)
-        return (text, "llm") if is_grounded(text, p) else (template_explain(p), "template (llm rejected: ungrounded number)")
-    except Exception as e:  # network / auth / quota -> never break the UI
+        text = _clean(_ollama_explain(facts, timeout))
+    except Exception as e:  # network / auth / quota -> never break the UI; not cached so it retries later
         return template_explain(p), f"template (llm error: {type(e).__name__})"
+    problem = verify_llm_text(text, facts, p["data_as_of"])
+    if problem:
+        result = template_explain(p), f"template (llm rejected: {problem})"
+    else:
+        tail = COMPLIANCE_TAIL.format(data_as_of=p["data_as_of"])
+        result = f"{text if text.endswith(('.', '!')) else text + '.'} {tail}", "llm"
+    with _CACHE_LOCK:
+        if len(_EXPLANATION_CACHE) >= _CACHE_LIMIT:
+            _EXPLANATION_CACHE.clear()
+        _EXPLANATION_CACHE[key] = result
+    return result

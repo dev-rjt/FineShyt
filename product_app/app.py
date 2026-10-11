@@ -51,7 +51,12 @@ st.markdown("""
         padding: 16px 18px; box-shadow: 0 8px 26px rgba(16,43,36,.05);
     }
     [data-testid="stMetricLabel"] { color: #587067; }
-    [data-testid="stMetricValue"] { color: #102B24; letter-spacing: -0.03em; }
+    [data-testid="stMetricValue"] { color: #102B24; letter-spacing: -0.03em; font-size: clamp(1.3rem, 2.1vw, 2rem); line-height: 1.15; }
+    /* Wrap long values and labels (ranges, "Not provided") instead of truncating them with an ellipsis. */
+    [data-testid="stMetricValue"], [data-testid="stMetricValue"] *,
+    [data-testid="stMetricLabel"], [data-testid="stMetricLabel"] * {
+        white-space: normal !important; overflow: visible !important; text-overflow: clip !important; overflow-wrap: anywhere;
+    }
     [data-testid="stVerticalBlockBorderWrapper"] {
         background: #FFFFFF; border-color: #DDE8E3 !important; border-radius: 18px !important;
         box-shadow: 0 10px 30px rgba(16,43,36,.045);

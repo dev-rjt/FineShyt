@@ -6,6 +6,7 @@ rules, deterministic impact engine, and structured explanation payload.
 """
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
 import json
 from pathlib import Path
@@ -33,6 +34,9 @@ EXTERNAL_PRODUCT_CODE = {
 INTERNAL_PRODUCT_CODE = {value: key for key, value in EXTERNAL_PRODUCT_CODE.items()}
 RULE_VERSION = "product_gate_v1.0.0"
 MODEL_VERSION = "lightgbm_ensemble_v1.0.0"
+# Per-call LLM cap for API responses. Calls run in parallel, so a response waits at most about this
+# long for wording, well inside the dashboard's 60 second request timeout; on timeout the template is used.
+API_LLM_TIMEOUT_SECONDS = 20.0
 
 
 def _records(frame: pd.DataFrame) -> list[dict]:
@@ -353,9 +357,20 @@ def _reason(code: str, kind: str = "DRIVER") -> dict:
     return {"code": code, "kind": kind, "label": code.replace("_", " ").title(), "plain_text": plain.capitalize()}
 
 
+def _attach_insights(pending: list[tuple[dict, dict]]) -> None:
+    """Explain recommended items in parallel; explain() never raises and falls back to the template."""
+    if not pending:
+        return
+    with ThreadPoolExecutor(max_workers=min(4, len(pending))) as pool:
+        results = list(pool.map(lambda pair: explain(pair[1], use_llm=True, timeout=API_LLM_TIMEOUT_SECONDS), pending))
+    for (item, _), (text, explanation_source) in zip(pending, results):
+        item["insight"] = {"text": text, "source": "LLM" if explanation_source == "llm" else "TEMPLATE", "verified": True}
+
+
 def _canonicalise(records: list[dict], source: str, include_suppressed: bool) -> tuple[list[dict], str]:
     percentiles = impact_percentiles()
     result = []
+    pending = []
     for record in records:
         internal = record["opportunity"]
         raw_codes = [code for code in str(record.get("reason_codes") or "").split(";") if code]
@@ -411,11 +426,10 @@ def _canonicalise(records: list[dict], source: str, include_suppressed: bool) ->
             "model_version": MODEL_VERSION,
         }
         if recommended:
-            payload = build_payload(record)
-            text, explanation_source = explain(payload, use_llm=False)
-            item["insight"] = {"text": text, "source": "LLM" if explanation_source == "llm" else "TEMPLATE", "verified": True}
+            pending.append((item, build_payload(record)))
             item["action"] = {"label": ACTION[internal], "note": "Subject to eligibility checks"}
         result.append(item)
+    _attach_insights(pending)
     visible = [item for item in result if item["status"] != "SUPPRESSED"]
     visible.sort(key=lambda item: item["rank_score"] or 0, reverse=True)
     for rank, item in enumerate(visible, 1):

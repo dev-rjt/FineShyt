@@ -9,7 +9,7 @@ from jsonschema import Draft202012Validator, FormatChecker
 
 from auth import hash_password
 from api import LoginRequest, get_customer, get_customer_audit, get_feature_weights, get_opportunities, health, login, require_bank
-from api_service import score_snapshot
+from api_service import API_LLM_TIMEOUT_SECONDS, score_snapshot
 
 
 SCHEMA = json.loads((Path(__file__).resolve().parents[2] / "contracts" / "opportunity_v1.schema.json").read_text())
@@ -75,6 +75,26 @@ class ApiIntegrationTests(unittest.TestCase):
         for item in audit["items"]:
             errors = sorted(VALIDATOR.iter_errors(item), key=lambda error: list(error.path))
             self.assertEqual(errors, [], "\n".join(error.message for error in errors))
+
+    def test_recommended_items_use_verified_llm_wording_with_bounded_timeout(self):
+        principal = self.login(os.environ["BANK_DEMO_ID"], self.BANK_PASSWORD)
+        with patch("api_service.explain", return_value=("EV Finance may suit you.", "llm")) as explain:
+            body = get_opportunities("C12558", principal)
+        recommended = [item for item in body["items"] if item["status"] == "RECOMMENDED"]
+        self.assertTrue(recommended)
+        self.assertEqual(explain.call_count, len(recommended))
+        for call in explain.call_args_list:
+            self.assertTrue(call.args[0]["recommended"])
+            self.assertEqual(call.kwargs["timeout"], API_LLM_TIMEOUT_SECONDS)
+        for item in recommended:
+            self.assertEqual(item["insight"], {"text": "EV Finance may suit you.", "source": "LLM", "verified": True})
+            self.assertEqual(list(VALIDATOR.iter_errors(item)), [])
+
+    def test_llm_fallback_is_reported_as_template(self):
+        principal = self.login(os.environ["BANK_DEMO_ID"], self.BANK_PASSWORD)
+        with patch("api_service.explain", return_value=("Standard wording.", "template (llm error: Timeout)")):
+            body = get_opportunities("C12558", principal)
+        self.assertTrue(all(item["insight"]["source"] == "TEMPLATE" for item in body["items"] if item["insight"]))
 
     def test_customer_cannot_open_bank_audit(self):
         principal = self.login(os.environ["CUSTOMER_DEMO_ID"], self.CUSTOMER_PASSWORD)
