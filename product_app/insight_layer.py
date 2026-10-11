@@ -57,6 +57,10 @@ def build_payload(rec: dict) -> dict:
                   "horizon", "method", "assumptions", "factors", "paper_statements_avoided",
                   "paper_sheets_avoided", "digital_adoption_shift_pp", "energy_saved_kwh", "system_kwp", "generation_kwh"):
             if k in impact: p[k] = impact[k]
+        # The public API sends the period as horizon_months, not horizon.
+        months = impact.get("horizon_months")
+        if not p.get("horizon") and isinstance(months, int) and not isinstance(months, bool) and months > 0:
+            p["horizon"] = f"{months} months"
     elif impact.get("status") == "INSUFFICIENT_DATA":
         p["missing_inputs"] = impact.get("missing_inputs")
     return p
@@ -73,6 +77,9 @@ def template_explain(p: dict) -> str:
                   f"(~{p['paper_sheets_avoided']} sheets) a year, with an estimated potential range of "
                   f"{p.get('estimate_low', p['avoided_kg_co2e_per_year'])}–{p.get('estimate_high', p['avoided_kg_co2e_per_year'])} kg CO2e. ")
         else:
+            if not p.get("horizon"):
+                return (s + "The estimate period is unavailable. "
+                        f"This is an indication of interest, not an offer or approval; eligibility is confirmed separately. Based on data as of {p['data_as_of']}.")
             s += (f"Our estimated potential range is {p.get('estimate_low', p['avoided_kg_co2e_per_year']):,}–"
                   f"{p.get('estimate_high', p['avoided_kg_co2e_per_year']):,} kg CO2e per "
                   f"{p['horizon'].replace('12 months', 'year')} (not a measured result). ")
