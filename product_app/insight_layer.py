@@ -38,6 +38,9 @@ EXCLUSION_TEXT = {
     "ALREADY_EV_NO_REPLACEMENT_USE_CASE": "you already drive an EV, so there is no replacement use case",
     "OUTSIDE_AGE_CRITERIA": "outside the product's age criteria", "ALREADY_HOLDS_PRODUCT": "you already hold this product",
     "ALREADY_MOSTLY_DIGITAL": "you're already mostly paperless",
+    "OUTSIDE_ILLUSTRATIVE_AGE_RULE": "outside the product's illustrative age range",
+    "UNKNOWN_VEHICLE_FUEL": "your vehicle's fuel type is not on record",
+    "MISSING_SUITABILITY_DATA": "key details needed for this product are missing",
 }
 PRODUCT_NAME = {"EV_FINANCE": "EV Finance", "GREEN_HOME": "Green Home Loan", "SOLAR_FINANCE": "Solar Finance", "PAPERLESS": "Paperless Banking"}
 ACTION = {"EV_FINANCE": "Explore EV options", "GREEN_HOME": "Explore green home upgrades",
@@ -79,8 +82,11 @@ def template_explain(p: dict) -> str:
     if p["impact_status"] == "OK":
         if p["product"] == "Paperless Banking":
             s += (f"Switching could avoid about {p['paper_statements_avoided']} paper statements "
-                  f"(~{p['paper_sheets_avoided']} sheets) a year, with an estimated potential range of "
-                  f"{p.get('estimate_low', p['avoided_kg_co2e_per_year'])}–{p.get('estimate_high', p['avoided_kg_co2e_per_year'])} kg CO2e. ")
+                  f"(~{p['paper_sheets_avoided']} sheets) a year")
+            low = p.get("estimate_low", p.get("avoided_kg_co2e_per_year"))
+            high = p.get("estimate_high", p.get("avoided_kg_co2e_per_year"))
+            s += (f", with an estimated potential range of {low}–{high} kg CO2e. " if low is not None and high is not None
+                  else ". We do not show a carbon figure because no sourced paper-statement factor is available. ")
         else:
             if not p.get("horizon"):
                 return (s + "The estimate period is unavailable. "
@@ -102,7 +108,11 @@ SYSTEM = (
     "in your own words.\n"
     "- If impact_status is \"ESTIMATE\": say switching could potentially avoid between co2e_low and co2e_high followed by "
     "\"unit\", copied exactly, and say this is an estimate, not a measured result. If paper_statements_avoided_per_year is present, also "
-    "mention the paper statements (and sheets) avoided each year. Keep paper and carbon figures separate; never add them.\n"
+    "mention the paper statements (and sheets) avoided each year. Keep paper and carbon figures separate; never add them. "
+"\n"
+    "- If impact_status is \"PAPER_ONLY\": say switching could avoid about paper_statements_avoided_per_year paper "
+    "statements (and paper_sheets_avoided_per_year sheets) a year, copied exactly. Do not mention carbon, CO2e, emissions "
+    "or missing data at all.\n"
     "- If impact_status is \"INSUFFICIENT_DATA\": say we do not have enough data to estimate the carbon impact yet, "
     "with no figures.\n"
     "- If impact_status is \"NOT_AVAILABLE\": do not mention any carbon figure.\n"
@@ -219,17 +229,16 @@ def llm_facts(p: dict) -> dict:
     facts = {"product": p["product"], "reasons": p["reasons_plain"][:3] or ["your recent activity"]}
     low = p.get("estimate_low", p.get("avoided_kg_co2e_per_year"))
     high = p.get("estimate_high", p.get("avoided_kg_co2e_per_year"))
-    if p["impact_status"] == "OK" and low is not None and high is not None:
-        if p["product"] == "Paperless Banking" and "paper_statements_avoided" in p:
-            facts.update(impact_status="ESTIMATE", co2e_low=_fmt(low), co2e_high=_fmt(high), unit="kg CO2e per year",
-                         paper_statements_avoided_per_year=_fmt(p["paper_statements_avoided"]))
-            if "paper_sheets_avoided" in p:
-                facts["paper_sheets_avoided_per_year"] = _fmt(p["paper_sheets_avoided"])
-        elif p.get("horizon"):
-            facts.update(impact_status="ESTIMATE", co2e_low=_fmt(low), co2e_high=_fmt(high),
-                         unit=f"kg CO2e per {p['horizon'].replace('12 months', 'year')}")
-        else:
-            facts["impact_status"] = "NOT_AVAILABLE"
+    has_range = low is not None and high is not None
+    if p["impact_status"] == "OK" and p["product"] == "Paperless Banking" and "paper_statements_avoided" in p:
+        facts.update(impact_status="PAPER_ONLY", paper_statements_avoided_per_year=_fmt(p["paper_statements_avoided"]))
+        if "paper_sheets_avoided" in p:
+            facts["paper_sheets_avoided_per_year"] = _fmt(p["paper_sheets_avoided"])
+        if has_range:  # only when a sourced paper factor exists
+            facts.update(impact_status="ESTIMATE", co2e_low=_fmt(low), co2e_high=_fmt(high), unit="kg CO2e per year")
+    elif p["impact_status"] == "OK" and has_range and p.get("horizon"):
+        facts.update(impact_status="ESTIMATE", co2e_low=_fmt(low), co2e_high=_fmt(high),
+                     unit=f"kg CO2e per {p['horizon'].replace('12 months', 'year')}")
     elif p["impact_status"] == "INSUFFICIENT_DATA":
         facts["impact_status"] = "INSUFFICIENT_DATA"
     else:
@@ -253,13 +262,16 @@ def verify_llm_text(text: str, facts: dict, data_as_of: str) -> str | None:
         return "ungrounded number"
     status = facts["impact_status"]
     if status == "ESTIMATE":
-        required = {_norm(facts["co2e_low"]), _norm(facts["co2e_high"])}
-        if "paper_statements_avoided_per_year" in facts:
-            required.add(_norm(facts["paper_statements_avoided_per_year"]))
+        required = {_norm(facts[key]) for key in ("co2e_low", "co2e_high", "paper_statements_avoided_per_year") if key in facts}
         if not required <= numbers:
             return "missing estimate range"
         if "estimat" not in text.casefold():
             return "figure not called an estimate"
+    elif status == "PAPER_ONLY":
+        if _norm(facts["paper_statements_avoided_per_year"]) not in numbers:
+            return "missing paper figure"
+        if re.search(r"co2|carbon|emission|enough data", text, re.IGNORECASE):
+            return "carbon claim without a sourced factor"
     elif status == "INSUFFICIENT_DATA" and not NO_DATA.search(text):
         return "missing insufficient-data statement"
     return None  # NOT_AVAILABLE facts hold no figures, so the grounding check already rejects any number

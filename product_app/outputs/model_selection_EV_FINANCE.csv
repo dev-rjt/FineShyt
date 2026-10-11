@@ -1,0 +1,7 @@
+family,C,cv_logloss,objective,metric,verbosity,feature_fraction,bagging_fraction,bagging_freq,lambda_l2,lambda_l1,min_gain_to_split,max_depth,n_jobs,deterministic,force_col_wise,learning_rate,num_leaves,min_child_samples,rounds
+logistic_regression,0.03,0.3344561129783032,,,,,,,,,,,,,,,,,
+logistic_regression,0.1,0.3337092423271069,,,,,,,,,,,,,,,,,
+logistic_regression,0.3,0.33523160302229915,,,,,,,,,,,,,,,,,
+logistic_regression,1.0,0.33645504812569327,,,,,,,,,,,,,,,,,
+logistic_regression,3.0,0.337005352374349,,,,,,,,,,,,,,,,,
+lightgbm,,0.3359746630560384,binary,binary_logloss,-1.0,0.8,0.8,1.0,5.0,0.5,0.0,-1.0,2.0,True,True,0.02,4.0,50.0,303.0

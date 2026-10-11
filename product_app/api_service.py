@@ -18,8 +18,8 @@ import joblib
 import numpy as np
 import pandas as pd
 
-from carbon_engine import estimate_impact
 from config import CUTOFF_DATE, DATABASE_PATH, MODEL_DIR, OUT_DIR, PRODUCTS, PRODUCT_IDS, REPOSITORY_ROOT
+from contract_adapter import contract_impact as estimate_impact, contract_reasons
 from insight_layer import ACTION, EXCLUSION_TEXT, PRODUCT_NAME, REASON_TEXT, build_payload, explain
 from rules import eligibility
 from txn_classifier import rule_classify
@@ -37,6 +37,17 @@ MODEL_VERSION = "lightgbm_ensemble_v1.0.0"
 # Per-call LLM cap for API responses. Calls run in parallel, so a response waits at most about this
 # long for wording, well inside the dashboard's 60 second request timeout; on timeout the template is used.
 API_LLM_TIMEOUT_SECONDS = 20.0
+# Same rule as inference.recommendations, so live and precomputed scoring agree.
+MIN_RECOMMEND_CONFIDENCE = 0.5
+
+
+def _score_row(model, row: pd.DataFrame) -> tuple[float, float, list[str], bool]:
+    """Propensity, confidence, vocabulary reason codes and whether the model-side recommendation rule passes."""
+    prediction = model.predict(row).iloc[0]
+    propensity, confidence = float(prediction.propensity), float(prediction.confidence)
+    has_evidence = bool(model.evidence(row)[0])
+    passes = propensity >= model.threshold and confidence >= MIN_RECOMMEND_CONFIDENCE and has_evidence
+    return propensity, confidence, contract_reasons(model, row)[0], passes
 
 
 def _records(frame: pd.DataFrame) -> list[dict]:
@@ -297,14 +308,12 @@ def score_customer(customer_id: str) -> tuple[list[dict], str]:
         for product in PRODUCTS:
             allowed = bool(gates.loc[customer_id, f"eligible_{product}"])
             model = models[product]
-            prediction = model.predict(row).iloc[0]
-            model_reasons = model.reason_codes(row)[0]
-            propensity = round(float(prediction.propensity), 4)
-            confidence = round(float(prediction.confidence), 4)
+            propensity, confidence, model_reasons, passes = _score_row(model, row)
+            propensity, confidence = round(propensity, 4), round(confidence, 4)
             if allowed:
                 reasons = model_reasons
                 impact = estimate_impact(product, row.iloc[0])
-                recommended = bool(propensity >= model.threshold)
+                recommended = bool(passes)
                 impact_status = impact["status"]
                 estimated = impact.get("avoided_kg_co2e_per_year")
             else:
@@ -343,7 +352,8 @@ def impact_percentiles() -> dict[str, float]:
             continue
         try:
             impact = json.loads(record.impact_json)
-            central = impact.get("estimate_central", impact.get("avoided_kg_co2e_per_year"))
+            # Primary metric (CO2E_KG, or PAPER_SHEETS for Paperless), matching the rank_score numerator.
+            central = impact["metrics"][0]["central"] if impact.get("metrics") else None
             if central is not None:
                 values[record.opportunity].append(float(central))
         except (TypeError, ValueError, json.JSONDecodeError):
@@ -389,9 +399,9 @@ def _canonicalise(records: list[dict], source: str, include_suppressed: bool) ->
             "method": "Not applicable because the product gate did not pass", "metrics": [],
             "assumptions": [], "factors": [], "missing_inputs": [],
         }
-        if canonical_impact.get("status") == "OK":
-            canonical_impact = {key: canonical_impact[key] for key in
-                                ["status", "is_estimate", "horizon_months", "method", "metrics", "assumptions", "factors", "missing_inputs"]}
+        # Contract fields only, for every status (display extras such as "product" or "horizon" stay internal).
+        canonical_impact = {key: canonical_impact[key] for key in
+                            ["status", "is_estimate", "horizon_months", "method", "metrics", "assumptions", "factors", "missing_inputs"]}
         central = None
         if impact.get("metrics"):
             central = impact["metrics"][0]["central"]
@@ -512,20 +522,18 @@ def score_snapshot(snapshot: dict) -> dict:
     records = []
     for product in PRODUCTS:
         model = models[product]
-        prediction = model.predict(row).iloc[0]
+        propensity, confidence, reasons, passes = _score_row(model, row)
         allowed = bool(gates.loc[customer_id, f"eligible_{product}"])
-        reasons = model.reason_codes(row)[0]
         impact = estimate_impact(product, row.iloc[0]) if allowed else {}
         if impact.get("status") == "INSUFFICIENT_DATA":
             mapping = {"annual_mileage": "MISSING_MILEAGE", "fuel_type_code": "MISSING_FUEL_DATA"}
             reasons += [f"DATA:{mapping.get(field, 'LOW_DATA_COMPLETENESS')}" for field in impact["missing_inputs"]]
         if not allowed:
             reasons = [f"EXCLUDED:{gates.loc[customer_id, f'exclusion_{product}']}", *reasons]
-        propensity, confidence = float(prediction.propensity), float(prediction.confidence)
         records.append({
             "customer_id": customer_id, "opportunity": product, "product_id": PRODUCT_IDS[product],
             "propensity": round(propensity, 4), "confidence": round(confidence, 4),
-            "recommend": bool(allowed and impact.get("status") == "OK" and propensity >= model.threshold),
+            "recommend": bool(allowed and impact.get("status") == "OK" and passes),
             "reason_codes": ";".join(reasons), "data_timestamp": str(CUTOFF_DATE.date()), "split": "scenario",
             "impact_status": impact.get("status", "NOT_APPLICABLE"),
             "est_avoided_kg_co2e_yr": impact.get("avoided_kg_co2e_per_year"), "impact_json": json.dumps(impact),

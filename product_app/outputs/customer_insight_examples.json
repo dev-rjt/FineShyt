@@ -1,0 +1,802 @@
+[
+  {
+    "customer_id": "C12635",
+    "opportunity": "GREEN_HOME",
+    "mode": "template_fallback",
+    "fallback_reason": null,
+    "text": "Product: Green Home Loan. Data cutoff: 2025-12-31. Financial eligibility has not been assessed; lender review and authorised checks are required. The ML model estimates a six-month take-up probability of 0.9970. Confidence heuristic: 0.9224; this is model stability and data quality, not probability of correctness. Observed annual gas use (kWh): 30721.1; this supports the model score. Observed annual heating-energy proxy (kWh): 31980.6; this supports the model score. Observed recorded sustainability preference (0-1): 0.916; this supports the model score. Estimated annual operational emissions avoided: 1161.3 kg CO2e. Method: annual metered kWh x factors; insulation/retrofit scenario reduces gas 20% and electricity 5%. Assumptions: 20% gas and 5% electricity reduction are scenario assumptions; Green Home maps to retrofit/insulation, not solar generation or a heat-pump model. Action: Explore home insulation and retrofit options.",
+    "fact_ids": [
+      "product",
+      "timestamp",
+      "eligibility",
+      "score",
+      "confidence",
+      "evidence_0",
+      "evidence_1",
+      "evidence_2",
+      "impact",
+      "assumptions",
+      "action"
+    ]
+  },
+  {
+    "customer_id": "C12144",
+    "opportunity": "GREEN_HOME",
+    "mode": "template_fallback",
+    "fallback_reason": null,
+    "text": "Product: Green Home Loan. Data cutoff: 2025-12-31. Financial eligibility has not been assessed; lender review and authorised checks are required. The ML model estimates a six-month take-up probability of 0.9864. Confidence heuristic: 0.9054; this is model stability and data quality, not probability of correctness. Observed annual gas use (kWh): 29054.4; this supports the model score. Observed annual heating-energy proxy (kWh): 30454.9; this supports the model score. Observed recorded sustainability preference (0-1): 0.76; this supports the model score. Estimated annual operational emissions avoided: 1104.47 kg CO2e. Method: annual metered kWh x factors; insulation/retrofit scenario reduces gas 20% and electricity 5%. Assumptions: 20% gas and 5% electricity reduction are scenario assumptions; Green Home maps to retrofit/insulation, not solar generation or a heat-pump model. Action: Explore home insulation and retrofit options.",
+    "fact_ids": [
+      "product",
+      "timestamp",
+      "eligibility",
+      "score",
+      "confidence",
+      "evidence_0",
+      "evidence_1",
+      "evidence_2",
+      "impact",
+      "assumptions",
+      "action"
+    ]
+  },
+  {
+    "customer_id": "C10081",
+    "opportunity": "EV_FINANCE",
+    "mode": "template_fallback",
+    "fallback_reason": null,
+    "text": "Product: EV Finance. Data cutoff: 2025-12-31. Financial eligibility has not been assessed; lender review and authorised checks are required. The ML model estimates a six-month take-up probability of 0.9774. Confidence heuristic: 0.8297; this is model stability and data quality, not probability of correctness. Observed annual vehicle mileage (miles): 17530; this supports the model score. Observed average monthly fuel/charging spending (GBP): 224.34; this supports the model score. Observed n fuel txn: 46; this supports the model score. Estimated annual operational emissions avoided: 3883.07 kg CO2e. Method: baseline = annual km x passenger-car factor; scenario = annual km x EV kWh/km x grid factor. Assumptions: Replacement at equal annual mileage; EV energy intensity is a scenario assumption, not a measured value. Action: Explore EV replacement options.",
+    "fact_ids": [
+      "product",
+      "timestamp",
+      "eligibility",
+      "score",
+      "confidence",
+      "evidence_0",
+      "evidence_1",
+      "evidence_2",
+      "impact",
+      "assumptions",
+      "action"
+    ]
+  },
+  {
+    "customer_id": "C13418",
+    "opportunity": "GREEN_HOME",
+    "mode": "template_fallback",
+    "fallback_reason": null,
+    "text": "Product: Green Home Loan. Data cutoff: 2025-12-31. Financial eligibility has not been assessed; lender review and authorised checks are required. The ML model estimates a six-month take-up probability of 0.9759. Confidence heuristic: 0.9130; this is model stability and data quality, not probability of correctness. Observed average monthly home-improvement spending (GBP): 119.862; this supports the model score. Observed annual gas use (kWh): 23203.4; this supports the model score. Observed annual heating-energy proxy (kWh): 24582.3; this supports the model score. Estimated annual operational emissions avoided: 889.74 kg CO2e. Method: annual metered kWh x factors; insulation/retrofit scenario reduces gas 20% and electricity 5%. Assumptions: 20% gas and 5% electricity reduction are scenario assumptions; Green Home maps to retrofit/insulation, not solar generation or a heat-pump model. Action: Explore home insulation and retrofit options.",
+    "fact_ids": [
+      "product",
+      "timestamp",
+      "eligibility",
+      "score",
+      "confidence",
+      "evidence_0",
+      "evidence_1",
+      "evidence_2",
+      "impact",
+      "assumptions",
+      "action"
+    ]
+  },
+  {
+    "customer_id": "C12394",
+    "opportunity": "GREEN_HOME",
+    "mode": "template_fallback",
+    "fallback_reason": null,
+    "text": "Product: Green Home Loan. Data cutoff: 2025-12-31. Financial eligibility has not been assessed; lender review and authorised checks are required. The ML model estimates a six-month take-up probability of 0.9707. Confidence heuristic: 0.8992; this is model stability and data quality, not probability of correctness. Observed annual gas use (kWh): 28049; this supports the model score. Observed annual heating-energy proxy (kWh): 29217.7; this supports the model score. Observed recorded sustainability preference (0-1): 0.697; this supports the model score. Estimated annual operational emissions avoided: 1060.85 kg CO2e. Method: annual metered kWh x factors; insulation/retrofit scenario reduces gas 20% and electricity 5%. Assumptions: 20% gas and 5% electricity reduction are scenario assumptions; Green Home maps to retrofit/insulation, not solar generation or a heat-pump model. Action: Explore home insulation and retrofit options.",
+    "fact_ids": [
+      "product",
+      "timestamp",
+      "eligibility",
+      "score",
+      "confidence",
+      "evidence_0",
+      "evidence_1",
+      "evidence_2",
+      "impact",
+      "assumptions",
+      "action"
+    ]
+  },
+  {
+    "customer_id": "C11544",
+    "opportunity": "GREEN_HOME",
+    "mode": "template_fallback",
+    "fallback_reason": null,
+    "text": "Product: Green Home Loan. Data cutoff: 2025-12-31. Financial eligibility has not been assessed; lender review and authorised checks are required. The ML model estimates a six-month take-up probability of 0.9665. Confidence heuristic: 0.9630; this is model stability and data quality, not probability of correctness. Observed annual gas use (kWh): 24309.4; this supports the model score. Observed annual heating-energy proxy (kWh): 25555.5; this supports the model score. Observed recorded sustainability preference (0-1): 0.924; this supports the model score. Estimated annual operational emissions avoided: 926.29 kg CO2e. Method: annual metered kWh x factors; insulation/retrofit scenario reduces gas 20% and electricity 5%. Assumptions: 20% gas and 5% electricity reduction are scenario assumptions; Green Home maps to retrofit/insulation, not solar generation or a heat-pump model. Action: Explore home insulation and retrofit options.",
+    "fact_ids": [
+      "product",
+      "timestamp",
+      "eligibility",
+      "score",
+      "confidence",
+      "evidence_0",
+      "evidence_1",
+      "evidence_2",
+      "impact",
+      "assumptions",
+      "action"
+    ]
+  },
+  {
+    "customer_id": "C14084",
+    "opportunity": "GREEN_HOME",
+    "mode": "template_fallback",
+    "fallback_reason": null,
+    "text": "Product: Green Home Loan. Data cutoff: 2025-12-31. Financial eligibility has not been assessed; lender review and authorised checks are required. The ML model estimates a six-month take-up probability of 0.9630. Confidence heuristic: 0.8926; this is model stability and data quality, not probability of correctness. Observed average monthly home-improvement spending (GBP): 161.223; this supports the model score. Observed annual heating-energy proxy (kWh): 19525.4; this supports the model score. Observed annual gas use (kWh): 17885.9; this supports the model score. Estimated annual operational emissions avoided: 702.85 kg CO2e. Method: annual metered kWh x factors; insulation/retrofit scenario reduces gas 20% and electricity 5%. Assumptions: 20% gas and 5% electricity reduction are scenario assumptions; Green Home maps to retrofit/insulation, not solar generation or a heat-pump model. Action: Explore home insulation and retrofit options.",
+    "fact_ids": [
+      "product",
+      "timestamp",
+      "eligibility",
+      "score",
+      "confidence",
+      "evidence_0",
+      "evidence_1",
+      "evidence_2",
+      "impact",
+      "assumptions",
+      "action"
+    ]
+  },
+  {
+    "customer_id": "C12614",
+    "opportunity": "EV_FINANCE",
+    "mode": "template_fallback",
+    "fallback_reason": null,
+    "text": "Product: EV Finance. Data cutoff: 2025-12-31. Financial eligibility has not been assessed; lender review and authorised checks are required. The ML model estimates a six-month take-up probability of 0.9581. Confidence heuristic: 0.8908; this is model stability and data quality, not probability of correctness. Observed recorded sustainability preference (0-1): 0.904; this supports the model score. Observed annual vehicle mileage (miles): 15330; this supports the model score. Observed average monthly fuel/charging spending (GBP): 224.939; this supports the model score. Estimated annual operational emissions avoided: 3395.75 kg CO2e. Method: baseline = annual km x passenger-car factor; scenario = annual km x EV kWh/km x grid factor. Assumptions: Replacement at equal annual mileage; EV energy intensity is a scenario assumption, not a measured value. Action: Explore EV replacement options.",
+    "fact_ids": [
+      "product",
+      "timestamp",
+      "eligibility",
+      "score",
+      "confidence",
+      "evidence_0",
+      "evidence_1",
+      "evidence_2",
+      "impact",
+      "assumptions",
+      "action"
+    ]
+  },
+  {
+    "customer_id": "C11755",
+    "opportunity": "GREEN_HOME",
+    "mode": "template_fallback",
+    "fallback_reason": null,
+    "text": "Product: Green Home Loan. Data cutoff: 2025-12-31. Financial eligibility has not been assessed; lender review and authorised checks are required. The ML model estimates a six-month take-up probability of 0.9486. Confidence heuristic: 0.9781; this is model stability and data quality, not probability of correctness. Observed recorded sustainability preference (0-1): 0.985; this supports the model score. Observed annual gas use (kWh): 21608.5; this supports the model score. Observed annual heating-energy proxy (kWh): 22573.3; this supports the model score. Estimated annual operational emissions avoided: 819.16 kg CO2e. Method: annual metered kWh x factors; insulation/retrofit scenario reduces gas 20% and electricity 5%. Assumptions: 20% gas and 5% electricity reduction are scenario assumptions; Green Home maps to retrofit/insulation, not solar generation or a heat-pump model. Action: Explore home insulation and retrofit options.",
+    "fact_ids": [
+      "product",
+      "timestamp",
+      "eligibility",
+      "score",
+      "confidence",
+      "evidence_0",
+      "evidence_1",
+      "evidence_2",
+      "impact",
+      "assumptions",
+      "action"
+    ]
+  },
+  {
+    "customer_id": "C11878",
+    "opportunity": "EV_FINANCE",
+    "mode": "template_fallback",
+    "fallback_reason": null,
+    "text": "Product: EV Finance. Data cutoff: 2025-12-31. Financial eligibility has not been assessed; lender review and authorised checks are required. The ML model estimates a six-month take-up probability of 0.9464. Confidence heuristic: 0.8893; this is model stability and data quality, not probability of correctness. Observed annual vehicle mileage (miles): 16480; this supports the model score. Observed recorded sustainability preference (0-1): 0.781; this supports the model score. Observed average monthly fuel/charging spending (GBP): 196.669; this supports the model score. Estimated annual operational emissions avoided: 3650.49 kg CO2e. Method: baseline = annual km x passenger-car factor; scenario = annual km x EV kWh/km x grid factor. Assumptions: Replacement at equal annual mileage; EV energy intensity is a scenario assumption, not a measured value. Action: Explore EV replacement options.",
+    "fact_ids": [
+      "product",
+      "timestamp",
+      "eligibility",
+      "score",
+      "confidence",
+      "evidence_0",
+      "evidence_1",
+      "evidence_2",
+      "impact",
+      "assumptions",
+      "action"
+    ]
+  },
+  {
+    "customer_id": "C12558",
+    "opportunity": "GREEN_HOME",
+    "mode": "template_fallback",
+    "fallback_reason": null,
+    "text": "Product: Green Home Loan. Data cutoff: 2025-12-31. Financial eligibility has not been assessed; lender review and authorised checks are required. The ML model estimates a six-month take-up probability of 0.9427. Confidence heuristic: 0.8825; this is model stability and data quality, not probability of correctness. Observed average monthly home-improvement spending (GBP): 142.862; this supports the model score. Observed recorded sustainability preference (0-1): 0.949; this supports the model score. Observed annual gas use (kWh): 15008.9; this supports the model score. Estimated annual operational emissions avoided: 577.82 kg CO2e. Method: annual metered kWh x factors; insulation/retrofit scenario reduces gas 20% and electricity 5%. Assumptions: 20% gas and 5% electricity reduction are scenario assumptions; Green Home maps to retrofit/insulation, not solar generation or a heat-pump model. Action: Explore home insulation and retrofit options.",
+    "fact_ids": [
+      "product",
+      "timestamp",
+      "eligibility",
+      "score",
+      "confidence",
+      "evidence_0",
+      "evidence_1",
+      "evidence_2",
+      "impact",
+      "assumptions",
+      "action"
+    ]
+  },
+  {
+    "customer_id": "C14084",
+    "opportunity": "SOLAR_FINANCE",
+    "mode": "template_fallback",
+    "fallback_reason": null,
+    "text": "Product: Solar Finance. Data cutoff: 2025-12-31. Financial eligibility has not been assessed; lender review and authorised checks are required. The ML model estimates a six-month take-up probability of 0.9398. Confidence heuristic: 0.8113; this is model stability and data quality, not probability of correctness. Observed average monthly home-improvement spending (GBP): 161.223; this supports the model score. Observed annual electricity use (kWh): 5465.1; this supports the model score. Observed spend electricity m: 135.581; this supports the model score. Estimated annual operational emissions avoided: 477.9 kg CO2e. Method: household avoided operational emissions = min(load, PV generation x self-use fraction) x grid factor. Assumptions: 900 kWh/kWp/year yield and 50% self-use are illustrative UK scenario assumptions; Roof suitability, installation permissions and shading require assessment; Export benefits excluded from household savings; no negative household emissions. Action: Request a roof and solar feasibility assessment.",
+    "fact_ids": [
+      "product",
+      "timestamp",
+      "eligibility",
+      "score",
+      "confidence",
+      "evidence_0",
+      "evidence_1",
+      "evidence_2",
+      "impact",
+      "assumptions",
+      "action"
+    ]
+  },
+  {
+    "customer_id": "C14479",
+    "opportunity": "SOLAR_FINANCE",
+    "mode": "template_fallback",
+    "fallback_reason": null,
+    "text": "Product: Solar Finance. Data cutoff: 2025-12-31. Financial eligibility has not been assessed; lender review and authorised checks are required. The ML model estimates a six-month take-up probability of 0.9363. Confidence heuristic: 0.8486; this is model stability and data quality, not probability of correctness. Observed annual electricity use (kWh): 8146.8; this supports the model score. Observed spend electricity m: 196.655; this supports the model score. Observed income idx: 4; this supports the model score. Estimated annual operational emissions avoided: 477.9 kg CO2e. Method: household avoided operational emissions = min(load, PV generation x self-use fraction) x grid factor. Assumptions: 900 kWh/kWp/year yield and 50% self-use are illustrative UK scenario assumptions; Roof suitability, installation permissions and shading require assessment; Export benefits excluded from household savings; no negative household emissions. Action: Request a roof and solar feasibility assessment.",
+    "fact_ids": [
+      "product",
+      "timestamp",
+      "eligibility",
+      "score",
+      "confidence",
+      "evidence_0",
+      "evidence_1",
+      "evidence_2",
+      "impact",
+      "assumptions",
+      "action"
+    ]
+  },
+  {
+    "customer_id": "C13035",
+    "opportunity": "GREEN_HOME",
+    "mode": "template_fallback",
+    "fallback_reason": null,
+    "text": "Product: Green Home Loan. Data cutoff: 2025-12-31. Financial eligibility has not been assessed; lender review and authorised checks are required. The ML model estimates a six-month take-up probability of 0.9260. Confidence heuristic: 0.9696; this is model stability and data quality, not probability of correctness. Observed average monthly home-improvement spending (GBP): 108.825; this supports the model score. Observed annual gas use (kWh): 20264.5; this supports the model score. Observed annual heating-energy proxy (kWh): 21413.5; this supports the model score. Estimated annual operational emissions avoided: 775.41 kg CO2e. Method: annual metered kWh x factors; insulation/retrofit scenario reduces gas 20% and electricity 5%. Assumptions: 20% gas and 5% electricity reduction are scenario assumptions; Green Home maps to retrofit/insulation, not solar generation or a heat-pump model. Action: Explore home insulation and retrofit options.",
+    "fact_ids": [
+      "product",
+      "timestamp",
+      "eligibility",
+      "score",
+      "confidence",
+      "evidence_0",
+      "evidence_1",
+      "evidence_2",
+      "impact",
+      "assumptions",
+      "action"
+    ]
+  },
+  {
+    "customer_id": "C13757",
+    "opportunity": "EV_FINANCE",
+    "mode": "template_fallback",
+    "fallback_reason": null,
+    "text": "Product: EV Finance. Data cutoff: 2025-12-31. Financial eligibility has not been assessed; lender review and authorised checks are required. The ML model estimates a six-month take-up probability of 0.9231. Confidence heuristic: 0.8389; this is model stability and data quality, not probability of correctness. Observed annual vehicle mileage (miles): 16230; this supports the model score. Observed recorded sustainability preference (0-1): 0.884; this supports the model score. Observed average monthly fuel/charging spending (GBP): 178.724; this supports the model score. Estimated annual operational emissions avoided: 3325.55 kg CO2e. Method: baseline = annual km x passenger-car factor; scenario = annual km x EV kWh/km x grid factor. Assumptions: Replacement at equal annual mileage; EV energy intensity is a scenario assumption, not a measured value. Action: Explore EV replacement options.",
+    "fact_ids": [
+      "product",
+      "timestamp",
+      "eligibility",
+      "score",
+      "confidence",
+      "evidence_0",
+      "evidence_1",
+      "evidence_2",
+      "impact",
+      "assumptions",
+      "action"
+    ]
+  },
+  {
+    "customer_id": "C10546",
+    "opportunity": "EV_FINANCE",
+    "mode": "template_fallback",
+    "fallback_reason": null,
+    "text": "Product: EV Finance. Data cutoff: 2025-12-31. Financial eligibility has not been assessed; lender review and authorised checks are required. The ML model estimates a six-month take-up probability of 0.9173. Confidence heuristic: 0.9213; this is model stability and data quality, not probability of correctness. Observed annual vehicle mileage (miles): 14820; this supports the model score. Observed recorded sustainability preference (0-1): 0.771; this supports the model score. Observed average monthly fuel/charging spending (GBP): 214.787; this supports the model score. Estimated annual operational emissions avoided: 3282.78 kg CO2e. Method: baseline = annual km x passenger-car factor; scenario = annual km x EV kWh/km x grid factor. Assumptions: Replacement at equal annual mileage; EV energy intensity is a scenario assumption, not a measured value. Action: Explore EV replacement options.",
+    "fact_ids": [
+      "product",
+      "timestamp",
+      "eligibility",
+      "score",
+      "confidence",
+      "evidence_0",
+      "evidence_1",
+      "evidence_2",
+      "impact",
+      "assumptions",
+      "action"
+    ]
+  },
+  {
+    "customer_id": "C14652",
+    "opportunity": "EV_FINANCE",
+    "mode": "template_fallback",
+    "fallback_reason": null,
+    "text": "Product: EV Finance. Data cutoff: 2025-12-31. Financial eligibility has not been assessed; lender review and authorised checks are required. The ML model estimates a six-month take-up probability of 0.9156. Confidence heuristic: 0.8631; this is model stability and data quality, not probability of correctness. Observed annual vehicle mileage (miles): 16090; this supports the model score. Observed average monthly fuel/charging spending (GBP): 206.658; this supports the model score. Observed recorded sustainability preference (0-1): 0.607; this supports the model score. Estimated annual operational emissions avoided: 3296.87 kg CO2e. Method: baseline = annual km x passenger-car factor; scenario = annual km x EV kWh/km x grid factor. Assumptions: Replacement at equal annual mileage; EV energy intensity is a scenario assumption, not a measured value. Action: Explore EV replacement options.",
+    "fact_ids": [
+      "product",
+      "timestamp",
+      "eligibility",
+      "score",
+      "confidence",
+      "evidence_0",
+      "evidence_1",
+      "evidence_2",
+      "impact",
+      "assumptions",
+      "action"
+    ]
+  },
+  {
+    "customer_id": "C10286",
+    "opportunity": "GREEN_HOME",
+    "mode": "template_fallback",
+    "fallback_reason": null,
+    "text": "Product: Green Home Loan. Data cutoff: 2025-12-31. Financial eligibility has not been assessed; lender review and authorised checks are required. The ML model estimates a six-month take-up probability of 0.9131. Confidence heuristic: 0.8401; this is model stability and data quality, not probability of correctness. Observed annual gas use (kWh): 27102.9; this supports the model score. Observed annual heating-energy proxy (kWh): 28673.4; this supports the model score. Observed recorded sustainability preference (0-1): 0.568; this supports the model score. Estimated annual operational emissions avoided: 1038.08 kg CO2e. Method: annual metered kWh x factors; insulation/retrofit scenario reduces gas 20% and electricity 5%. Assumptions: 20% gas and 5% electricity reduction are scenario assumptions; Green Home maps to retrofit/insulation, not solar generation or a heat-pump model. Action: Explore home insulation and retrofit options.",
+    "fact_ids": [
+      "product",
+      "timestamp",
+      "eligibility",
+      "score",
+      "confidence",
+      "evidence_0",
+      "evidence_1",
+      "evidence_2",
+      "impact",
+      "assumptions",
+      "action"
+    ]
+  },
+  {
+    "customer_id": "C13631",
+    "opportunity": "EV_FINANCE",
+    "mode": "template_fallback",
+    "fallback_reason": null,
+    "text": "Product: EV Finance. Data cutoff: 2025-12-31. Financial eligibility has not been assessed; lender review and authorised checks are required. The ML model estimates a six-month take-up probability of 0.9105. Confidence heuristic: 0.9210; this is model stability and data quality, not probability of correctness. Observed recorded sustainability preference (0-1): 0.93; this supports the model score. Observed annual vehicle mileage (miles): 13280; this supports the model score. Observed average monthly fuel/charging spending (GBP): 179.243; this supports the model score. Estimated annual operational emissions avoided: 2721.09 kg CO2e. Method: baseline = annual km x passenger-car factor; scenario = annual km x EV kWh/km x grid factor. Assumptions: Replacement at equal annual mileage; EV energy intensity is a scenario assumption, not a measured value. Action: Explore EV replacement options.",
+    "fact_ids": [
+      "product",
+      "timestamp",
+      "eligibility",
+      "score",
+      "confidence",
+      "evidence_0",
+      "evidence_1",
+      "evidence_2",
+      "impact",
+      "assumptions",
+      "action"
+    ]
+  },
+  {
+    "customer_id": "C11962",
+    "opportunity": "EV_FINANCE",
+    "mode": "template_fallback",
+    "fallback_reason": null,
+    "text": "Product: EV Finance. Data cutoff: 2025-12-31. Financial eligibility has not been assessed; lender review and authorised checks are required. The ML model estimates a six-month take-up probability of 0.9002. Confidence heuristic: 0.9294; this is model stability and data quality, not probability of correctness. Observed annual vehicle mileage (miles): 15070; this supports the model score. Observed recorded sustainability preference (0-1): 0.779; this supports the model score. Observed average monthly fuel/charging spending (GBP): 213.662; this supports the model score. Estimated annual operational emissions avoided: 3087.87 kg CO2e. Method: baseline = annual km x passenger-car factor; scenario = annual km x EV kWh/km x grid factor. Assumptions: Replacement at equal annual mileage; EV energy intensity is a scenario assumption, not a measured value. Action: Explore EV replacement options.",
+    "fact_ids": [
+      "product",
+      "timestamp",
+      "eligibility",
+      "score",
+      "confidence",
+      "evidence_0",
+      "evidence_1",
+      "evidence_2",
+      "impact",
+      "assumptions",
+      "action"
+    ]
+  },
+  {
+    "customer_id": "C13539",
+    "opportunity": "EV_FINANCE",
+    "mode": "template_fallback",
+    "fallback_reason": null,
+    "text": "Product: EV Finance. Data cutoff: 2025-12-31. Financial eligibility has not been assessed; lender review and authorised checks are required. The ML model estimates a six-month take-up probability of 0.8948. Confidence heuristic: 0.9119; this is model stability and data quality, not probability of correctness. Observed recorded sustainability preference (0-1): 0.834; this supports the model score. Observed annual vehicle mileage (miles): 13600; this supports the model score. Observed n fuel txn: 38; this supports the model score. Estimated annual operational emissions avoided: 2786.66 kg CO2e. Method: baseline = annual km x passenger-car factor; scenario = annual km x EV kWh/km x grid factor. Assumptions: Replacement at equal annual mileage; EV energy intensity is a scenario assumption, not a measured value. Action: Explore EV replacement options.",
+    "fact_ids": [
+      "product",
+      "timestamp",
+      "eligibility",
+      "score",
+      "confidence",
+      "evidence_0",
+      "evidence_1",
+      "evidence_2",
+      "impact",
+      "assumptions",
+      "action"
+    ]
+  },
+  {
+    "customer_id": "C13303",
+    "opportunity": "EV_FINANCE",
+    "mode": "template_fallback",
+    "fallback_reason": null,
+    "text": "Product: EV Finance. Data cutoff: 2025-12-31. Financial eligibility has not been assessed; lender review and authorised checks are required. The ML model estimates a six-month take-up probability of 0.8896. Confidence heuristic: 0.9363; this is model stability and data quality, not probability of correctness. Observed recorded sustainability preference (0-1): 1; this supports the model score. Observed annual vehicle mileage (miles): 12820; this supports the model score. Observed average monthly fuel/charging spending (GBP): 168.673; this supports the model score. Estimated annual operational emissions avoided: 2626.84 kg CO2e. Method: baseline = annual km x passenger-car factor; scenario = annual km x EV kWh/km x grid factor. Assumptions: Replacement at equal annual mileage; EV energy intensity is a scenario assumption, not a measured value. Action: Explore EV replacement options.",
+    "fact_ids": [
+      "product",
+      "timestamp",
+      "eligibility",
+      "score",
+      "confidence",
+      "evidence_0",
+      "evidence_1",
+      "evidence_2",
+      "impact",
+      "assumptions",
+      "action"
+    ]
+  },
+  {
+    "customer_id": "C12765",
+    "opportunity": "SOLAR_FINANCE",
+    "mode": "template_fallback",
+    "fallback_reason": null,
+    "text": "Product: Solar Finance. Data cutoff: 2025-12-31. Financial eligibility has not been assessed; lender review and authorised checks are required. The ML model estimates a six-month take-up probability of 0.8752. Confidence heuristic: 0.8925; this is model stability and data quality, not probability of correctness. Observed recorded sustainability preference (0-1): 0.879; this supports the model score. Observed average monthly home-improvement spending (GBP): 100.285; this supports the model score. Observed annual electricity use (kWh): 4309.1; this supports the model score. Estimated annual operational emissions avoided: 381.36 kg CO2e. Method: household avoided operational emissions = min(load, PV generation x self-use fraction) x grid factor. Assumptions: 900 kWh/kWp/year yield and 50% self-use are illustrative UK scenario assumptions; Roof suitability, installation permissions and shading require assessment; Export benefits excluded from household savings; no negative household emissions. Action: Request a roof and solar feasibility assessment.",
+    "fact_ids": [
+      "product",
+      "timestamp",
+      "eligibility",
+      "score",
+      "confidence",
+      "evidence_0",
+      "evidence_1",
+      "evidence_2",
+      "impact",
+      "assumptions",
+      "action"
+    ]
+  },
+  {
+    "customer_id": "C12635",
+    "opportunity": "SOLAR_FINANCE",
+    "mode": "template_fallback",
+    "fallback_reason": null,
+    "text": "Product: Solar Finance. Data cutoff: 2025-12-31. Financial eligibility has not been assessed; lender review and authorised checks are required. The ML model estimates a six-month take-up probability of 0.8354. Confidence heuristic: 0.8282; this is model stability and data quality, not probability of correctness. Observed recorded sustainability preference (0-1): 0.916; this supports the model score. Observed spend electricity m: 108.273; this supports the model score. Observed annual electricity use (kWh): 4198.5; this supports the model score. Estimated annual operational emissions avoided: 371.57 kg CO2e. Method: household avoided operational emissions = min(load, PV generation x self-use fraction) x grid factor. Assumptions: 900 kWh/kWp/year yield and 50% self-use are illustrative UK scenario assumptions; Roof suitability, installation permissions and shading require assessment; Export benefits excluded from household savings; no negative household emissions. Action: Request a roof and solar feasibility assessment.",
+    "fact_ids": [
+      "product",
+      "timestamp",
+      "eligibility",
+      "score",
+      "confidence",
+      "evidence_0",
+      "evidence_1",
+      "evidence_2",
+      "impact",
+      "assumptions",
+      "action"
+    ]
+  },
+  {
+    "customer_id": "C12558",
+    "opportunity": "SOLAR_FINANCE",
+    "mode": "template_fallback",
+    "fallback_reason": null,
+    "text": "Product: Solar Finance. Data cutoff: 2025-12-31. Financial eligibility has not been assessed; lender review and authorised checks are required. The ML model estimates a six-month take-up probability of 0.8333. Confidence heuristic: 0.7325; this is model stability and data quality, not probability of correctness. Observed recorded sustainability preference (0-1): 0.949; this supports the model score. Observed average monthly home-improvement spending (GBP): 142.862; this supports the model score. Observed income idx: 4; this supports the model score. Estimated annual operational emissions avoided: 286.18 kg CO2e. Method: household avoided operational emissions = min(load, PV generation x self-use fraction) x grid factor. Assumptions: 900 kWh/kWp/year yield and 50% self-use are illustrative UK scenario assumptions; Roof suitability, installation permissions and shading require assessment; Export benefits excluded from household savings; no negative household emissions. Action: Request a roof and solar feasibility assessment.",
+    "fact_ids": [
+      "product",
+      "timestamp",
+      "eligibility",
+      "score",
+      "confidence",
+      "evidence_0",
+      "evidence_1",
+      "evidence_2",
+      "impact",
+      "assumptions",
+      "action"
+    ]
+  },
+  {
+    "customer_id": "C11818",
+    "opportunity": "SOLAR_FINANCE",
+    "mode": "template_fallback",
+    "fallback_reason": null,
+    "text": "Product: Solar Finance. Data cutoff: 2025-12-31. Financial eligibility has not been assessed; lender review and authorised checks are required. The ML model estimates a six-month take-up probability of 0.8314. Confidence heuristic: 0.8604; this is model stability and data quality, not probability of correctness. Observed recorded sustainability preference (0-1): 0.861; this supports the model score. Observed average monthly home-improvement spending (GBP): 116.117; this supports the model score. Observed annual electricity use (kWh): 4425.5; this supports the model score. Estimated annual operational emissions avoided: 391.66 kg CO2e. Method: household avoided operational emissions = min(load, PV generation x self-use fraction) x grid factor. Assumptions: 900 kWh/kWp/year yield and 50% self-use are illustrative UK scenario assumptions; Roof suitability, installation permissions and shading require assessment; Export benefits excluded from household savings; no negative household emissions. Action: Request a roof and solar feasibility assessment.",
+    "fact_ids": [
+      "product",
+      "timestamp",
+      "eligibility",
+      "score",
+      "confidence",
+      "evidence_0",
+      "evidence_1",
+      "evidence_2",
+      "impact",
+      "assumptions",
+      "action"
+    ]
+  },
+  {
+    "customer_id": "C12313",
+    "opportunity": "SOLAR_FINANCE",
+    "mode": "template_fallback",
+    "fallback_reason": null,
+    "text": "Product: Solar Finance. Data cutoff: 2025-12-31. Financial eligibility has not been assessed; lender review and authorised checks are required. The ML model estimates a six-month take-up probability of 0.8262. Confidence heuristic: 0.7322; this is model stability and data quality, not probability of correctness. Observed recorded sustainability preference (0-1): 0.829; this supports the model score. Observed average monthly home-improvement spending (GBP): 127.245; this supports the model score. Observed annual electricity use (kWh): 4183; this supports the model score. Estimated annual operational emissions avoided: 370.2 kg CO2e. Method: household avoided operational emissions = min(load, PV generation x self-use fraction) x grid factor. Assumptions: 900 kWh/kWp/year yield and 50% self-use are illustrative UK scenario assumptions; Roof suitability, installation permissions and shading require assessment; Export benefits excluded from household savings; no negative household emissions. Action: Request a roof and solar feasibility assessment.",
+    "fact_ids": [
+      "product",
+      "timestamp",
+      "eligibility",
+      "score",
+      "confidence",
+      "evidence_0",
+      "evidence_1",
+      "evidence_2",
+      "impact",
+      "assumptions",
+      "action"
+    ]
+  },
+  {
+    "customer_id": "C13418",
+    "opportunity": "SOLAR_FINANCE",
+    "mode": "template_fallback",
+    "fallback_reason": null,
+    "text": "Product: Solar Finance. Data cutoff: 2025-12-31. Financial eligibility has not been assessed; lender review and authorised checks are required. The ML model estimates a six-month take-up probability of 0.8254. Confidence heuristic: 0.8081; this is model stability and data quality, not probability of correctness. Observed recorded sustainability preference (0-1): 0.908; this supports the model score. Observed average monthly home-improvement spending (GBP): 119.862; this supports the model score. Observed annual electricity use (kWh): 4596.3; this supports the model score. Estimated annual operational emissions avoided: 406.77 kg CO2e. Method: household avoided operational emissions = min(load, PV generation x self-use fraction) x grid factor. Assumptions: 900 kWh/kWp/year yield and 50% self-use are illustrative UK scenario assumptions; Roof suitability, installation permissions and shading require assessment; Export benefits excluded from household savings; no negative household emissions. Action: Request a roof and solar feasibility assessment.",
+    "fact_ids": [
+      "product",
+      "timestamp",
+      "eligibility",
+      "score",
+      "confidence",
+      "evidence_0",
+      "evidence_1",
+      "evidence_2",
+      "impact",
+      "assumptions",
+      "action"
+    ]
+  },
+  {
+    "customer_id": "C11974",
+    "opportunity": "SOLAR_FINANCE",
+    "mode": "template_fallback",
+    "fallback_reason": null,
+    "text": "Product: Solar Finance. Data cutoff: 2025-12-31. Financial eligibility has not been assessed; lender review and authorised checks are required. The ML model estimates a six-month take-up probability of 0.8132. Confidence heuristic: 0.7324; this is model stability and data quality, not probability of correctness. Observed annual electricity use (kWh): 6701.9; this supports the model score. Observed spend electricity m: 167.013; this supports the model score. Observed recorded sustainability preference (0-1): 0.625; this supports the model score. Estimated annual operational emissions avoided: 477.9 kg CO2e. Method: household avoided operational emissions = min(load, PV generation x self-use fraction) x grid factor. Assumptions: 900 kWh/kWp/year yield and 50% self-use are illustrative UK scenario assumptions; Roof suitability, installation permissions and shading require assessment; Export benefits excluded from household savings; no negative household emissions. Action: Request a roof and solar feasibility assessment.",
+    "fact_ids": [
+      "product",
+      "timestamp",
+      "eligibility",
+      "score",
+      "confidence",
+      "evidence_0",
+      "evidence_1",
+      "evidence_2",
+      "impact",
+      "assumptions",
+      "action"
+    ]
+  },
+  {
+    "customer_id": "C14869",
+    "opportunity": "SOLAR_FINANCE",
+    "mode": "template_fallback",
+    "fallback_reason": null,
+    "text": "Product: Solar Finance. Data cutoff: 2025-12-31. Financial eligibility has not been assessed; lender review and authorised checks are required. The ML model estimates a six-month take-up probability of 0.8089. Confidence heuristic: 0.7516; this is model stability and data quality, not probability of correctness. Observed annual electricity use (kWh): 6537.3; this supports the model score. Observed spend electricity m: 166.067; this supports the model score. Observed average monthly home-improvement spending (GBP): 63.3483; this supports the model score. Estimated annual operational emissions avoided: 477.9 kg CO2e. Method: household avoided operational emissions = min(load, PV generation x self-use fraction) x grid factor. Assumptions: 900 kWh/kWp/year yield and 50% self-use are illustrative UK scenario assumptions; Roof suitability, installation permissions and shading require assessment; Export benefits excluded from household savings; no negative household emissions. Action: Request a roof and solar feasibility assessment.",
+    "fact_ids": [
+      "product",
+      "timestamp",
+      "eligibility",
+      "score",
+      "confidence",
+      "evidence_0",
+      "evidence_1",
+      "evidence_2",
+      "impact",
+      "assumptions",
+      "action"
+    ]
+  },
+  {
+    "customer_id": "C12332",
+    "opportunity": "PAPERLESS",
+    "mode": "template_fallback",
+    "fallback_reason": null,
+    "text": "Product: Paperless Banking. Data cutoff: 2025-12-31. Financial eligibility has not been assessed; lender review and authorised checks are required. The ML model estimates a six-month take-up probability of 0.7883. Confidence heuristic: 0.8561; this is model stability and data quality, not probability of correctness. Observed average monthly digital transactions: 63.9167; this supports the model score. Observed average monthly branch visits: 0; this supports the model score. Observed age (years): 20; this supports the model score. Estimated paper statements avoided: 5 per year. No carbon estimate is available. Assumptions: All observed annual paper statements switch to digital; 3 A4 sheets per statement assumed. Action: Choose digital statements.",
+    "fact_ids": [
+      "product",
+      "timestamp",
+      "eligibility",
+      "score",
+      "confidence",
+      "evidence_0",
+      "evidence_1",
+      "evidence_2",
+      "impact",
+      "assumptions",
+      "action"
+    ]
+  },
+  {
+    "customer_id": "C12756",
+    "opportunity": "PAPERLESS",
+    "mode": "template_fallback",
+    "fallback_reason": null,
+    "text": "Product: Paperless Banking. Data cutoff: 2025-12-31. Financial eligibility has not been assessed; lender review and authorised checks are required. The ML model estimates a six-month take-up probability of 0.7535. Confidence heuristic: 0.8093; this is model stability and data quality, not probability of correctness. Observed average monthly digital transactions: 63.25; this supports the model score. Observed average monthly branch visits: 0; this supports the model score. Observed age (years): 26; this supports the model score. Estimated paper statements avoided: 7 per year. No carbon estimate is available. Assumptions: All observed annual paper statements switch to digital; 3 A4 sheets per statement assumed. Action: Choose digital statements.",
+    "fact_ids": [
+      "product",
+      "timestamp",
+      "eligibility",
+      "score",
+      "confidence",
+      "evidence_0",
+      "evidence_1",
+      "evidence_2",
+      "impact",
+      "assumptions",
+      "action"
+    ]
+  },
+  {
+    "customer_id": "C13969",
+    "opportunity": "PAPERLESS",
+    "mode": "template_fallback",
+    "fallback_reason": null,
+    "text": "Product: Paperless Banking. Data cutoff: 2025-12-31. Financial eligibility has not been assessed; lender review and authorised checks are required. The ML model estimates a six-month take-up probability of 0.7224. Confidence heuristic: 0.8341; this is model stability and data quality, not probability of correctness. Observed average monthly digital transactions: 65.0833; this supports the model score. Observed average monthly branch visits: 0; this supports the model score. Observed digital usage: 0.983; this supports the model score. Estimated paper statements avoided: 5 per year. No carbon estimate is available. Assumptions: All observed annual paper statements switch to digital; 3 A4 sheets per statement assumed. Action: Choose digital statements.",
+    "fact_ids": [
+      "product",
+      "timestamp",
+      "eligibility",
+      "score",
+      "confidence",
+      "evidence_0",
+      "evidence_1",
+      "evidence_2",
+      "impact",
+      "assumptions",
+      "action"
+    ]
+  },
+  {
+    "customer_id": "C14025",
+    "opportunity": "PAPERLESS",
+    "mode": "template_fallback",
+    "fallback_reason": null,
+    "text": "Product: Paperless Banking. Data cutoff: 2025-12-31. Financial eligibility has not been assessed; lender review and authorised checks are required. The ML model estimates a six-month take-up probability of 0.7117. Confidence heuristic: 0.8955; this is model stability and data quality, not probability of correctness. Observed average monthly digital transactions: 59.1667; this supports the model score. Observed average monthly branch visits: 0; this supports the model score. Observed age (years): 30; this supports the model score. Estimated paper statements avoided: 14 per year. No carbon estimate is available. Assumptions: All observed annual paper statements switch to digital; 3 A4 sheets per statement assumed. Action: Choose digital statements.",
+    "fact_ids": [
+      "product",
+      "timestamp",
+      "eligibility",
+      "score",
+      "confidence",
+      "evidence_0",
+      "evidence_1",
+      "evidence_2",
+      "impact",
+      "assumptions",
+      "action"
+    ]
+  },
+  {
+    "customer_id": "C10519",
+    "opportunity": "PAPERLESS",
+    "mode": "template_fallback",
+    "fallback_reason": null,
+    "text": "Product: Paperless Banking. Data cutoff: 2025-12-31. Financial eligibility has not been assessed; lender review and authorised checks are required. The ML model estimates a six-month take-up probability of 0.7037. Confidence heuristic: 0.8343; this is model stability and data quality, not probability of correctness. Observed average monthly digital transactions: 64.5; this supports the model score. Observed average monthly branch visits: 0; this supports the model score. Observed inflow m: 6500; this supports the model score. Estimated paper statements avoided: 4 per year. No carbon estimate is available. Assumptions: All observed annual paper statements switch to digital; 3 A4 sheets per statement assumed. Action: Choose digital statements.",
+    "fact_ids": [
+      "product",
+      "timestamp",
+      "eligibility",
+      "score",
+      "confidence",
+      "evidence_0",
+      "evidence_1",
+      "evidence_2",
+      "impact",
+      "assumptions",
+      "action"
+    ]
+  },
+  {
+    "customer_id": "C14937",
+    "opportunity": "PAPERLESS",
+    "mode": "template_fallback",
+    "fallback_reason": null,
+    "text": "Product: Paperless Banking. Data cutoff: 2025-12-31. Financial eligibility has not been assessed; lender review and authorised checks are required. The ML model estimates a six-month take-up probability of 0.7022. Confidence heuristic: 0.8301; this is model stability and data quality, not probability of correctness. Observed average monthly digital transactions: 70.8333; this supports the model score. Observed average monthly branch visits: 0.0833333; this supports the model score. Observed digital usage: 1; this supports the model score. Estimated paper statements avoided: 5 per year. No carbon estimate is available. Assumptions: All observed annual paper statements switch to digital; 3 A4 sheets per statement assumed. Action: Choose digital statements.",
+    "fact_ids": [
+      "product",
+      "timestamp",
+      "eligibility",
+      "score",
+      "confidence",
+      "evidence_0",
+      "evidence_1",
+      "evidence_2",
+      "impact",
+      "assumptions",
+      "action"
+    ]
+  },
+  {
+    "customer_id": "C13727",
+    "opportunity": "PAPERLESS",
+    "mode": "template_fallback",
+    "fallback_reason": null,
+    "text": "Product: Paperless Banking. Data cutoff: 2025-12-31. Financial eligibility has not been assessed; lender review and authorised checks are required. The ML model estimates a six-month take-up probability of 0.6651. Confidence heuristic: 0.7903; this is model stability and data quality, not probability of correctness. Observed average monthly digital transactions: 67.5; this supports the model score. Observed average monthly branch visits: 0; this supports the model score. Observed inflow m: 6500; this supports the model score. Estimated paper statements avoided: 5 per year. No carbon estimate is available. Assumptions: All observed annual paper statements switch to digital; 3 A4 sheets per statement assumed. Action: Choose digital statements.",
+    "fact_ids": [
+      "product",
+      "timestamp",
+      "eligibility",
+      "score",
+      "confidence",
+      "evidence_0",
+      "evidence_1",
+      "evidence_2",
+      "impact",
+      "assumptions",
+      "action"
+    ]
+  },
+  {
+    "customer_id": "C13135",
+    "opportunity": "PAPERLESS",
+    "mode": "template_fallback",
+    "fallback_reason": null,
+    "text": "Product: Paperless Banking. Data cutoff: 2025-12-31. Financial eligibility has not been assessed; lender review and authorised checks are required. The ML model estimates a six-month take-up probability of 0.6626. Confidence heuristic: 0.9349; this is model stability and data quality, not probability of correctness. Observed average monthly digital transactions: 59.9167; this supports the model score. Observed average monthly branch visits: 0; this supports the model score. Observed recorded sustainability preference (0-1): 0.847; this supports the model score. Estimated paper statements avoided: 7 per year. No carbon estimate is available. Assumptions: All observed annual paper statements switch to digital; 3 A4 sheets per statement assumed. Action: Choose digital statements.",
+    "fact_ids": [
+      "product",
+      "timestamp",
+      "eligibility",
+      "score",
+      "confidence",
+      "evidence_0",
+      "evidence_1",
+      "evidence_2",
+      "impact",
+      "assumptions",
+      "action"
+    ]
+  },
+  {
+    "customer_id": "C12738",
+    "opportunity": "PAPERLESS",
+    "mode": "template_fallback",
+    "fallback_reason": null,
+    "text": "Product: Paperless Banking. Data cutoff: 2025-12-31. Financial eligibility has not been assessed; lender review and authorised checks are required. The ML model estimates a six-month take-up probability of 0.6571. Confidence heuristic: 0.8044; this is model stability and data quality, not probability of correctness. Observed average monthly digital transactions: 66.5; this supports the model score. Observed average monthly branch visits: 0; this supports the model score. Observed digital usage: 0.992; this supports the model score. Estimated paper statements avoided: 8 per year. No carbon estimate is available. Assumptions: All observed annual paper statements switch to digital; 3 A4 sheets per statement assumed. Action: Choose digital statements.",
+    "fact_ids": [
+      "product",
+      "timestamp",
+      "eligibility",
+      "score",
+      "confidence",
+      "evidence_0",
+      "evidence_1",
+      "evidence_2",
+      "impact",
+      "assumptions",
+      "action"
+    ]
+  },
+  {
+    "customer_id": "C12717",
+    "opportunity": "PAPERLESS",
+    "mode": "template_fallback",
+    "fallback_reason": null,
+    "text": "Product: Paperless Banking. Data cutoff: 2025-12-31. Financial eligibility has not been assessed; lender review and authorised checks are required. The ML model estimates a six-month take-up probability of 0.6557. Confidence heuristic: 0.8919; this is model stability and data quality, not probability of correctness. Observed average monthly digital transactions: 62.25; this supports the model score. Observed average monthly branch visits: 0.0833333; this supports the model score. Observed inflow m: 6500; this supports the model score. Estimated paper statements avoided: 8 per year. No carbon estimate is available. Assumptions: All observed annual paper statements switch to digital; 3 A4 sheets per statement assumed. Action: Choose digital statements.",
+    "fact_ids": [
+      "product",
+      "timestamp",
+      "eligibility",
+      "score",
+      "confidence",
+      "evidence_0",
+      "evidence_1",
+      "evidence_2",
+      "impact",
+      "assumptions",
+      "action"
+    ]
+  }
+]

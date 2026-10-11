@@ -1,0 +1,143 @@
+{
+  "val": {
+    "n": 60000,
+    "model_macro_f1": 0.999414298728328,
+    "model_acc": 0.9996333333333334,
+    "rules_macro_f1": 0.837542540936737,
+    "rules_acc": 0.8132666666666667,
+    "per_category": {
+      "Fuel": {
+        "precision": 0.9983663467429038,
+        "recall": 0.9997955010224949,
+        "f1-score": 0.9990804127924798,
+        "support": 4890.0
+      },
+      "Electricity": {
+        "precision": 0.9998090509833875,
+        "recall": 0.999236641221374,
+        "f1-score": 0.9995227641500429,
+        "support": 5240.0
+      },
+      "Gas": {
+        "precision": 0.9990892531876139,
+        "recall": 0.9995444191343964,
+        "f1-score": 0.9993167843315873,
+        "support": 4390.0
+      },
+      "Public Transport": {
+        "precision": 0.9998441153546376,
+        "recall": 0.999766191255553,
+        "f1-score": 0.9998051517867581,
+        "support": 12831.0
+      },
+      "Home Improvement": {
+        "precision": 0.999198717948718,
+        "recall": 0.996802557953637,
+        "f1-score": 0.9979991996798719,
+        "support": 1251.0
+      },
+      "Automotive": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 1819.0
+      },
+      "Utilities": {
+        "precision": 1.0,
+        "recall": 0.999809994299829,
+        "f1-score": 0.9999049881235155,
+        "support": 10526.0
+      },
+      "Other": {
+        "precision": 0.9996850889623682,
+        "recall": 0.9996850889623682,
+        "f1-score": 0.9996850889623682,
+        "support": 19053.0
+      },
+      "accuracy": 0.9996333333333334,
+      "macro avg": {
+        "precision": 0.9994990716474537,
+        "recall": 0.9993300492312066,
+        "f1-score": 0.999414298728328,
+        "support": 60000.0
+      },
+      "weighted avg": {
+        "precision": 0.9996335020748096,
+        "recall": 0.9996333333333334,
+        "f1-score": 0.9996333332046776,
+        "support": 60000.0
+      }
+    }
+  },
+  "test": {
+    "n": 60000,
+    "model_macro_f1": 0.9995467075095279,
+    "model_acc": 0.9996833333333334,
+    "rules_macro_f1": 0.8370632505610527,
+    "rules_acc": 0.8121666666666667,
+    "per_category": {
+      "Fuel": {
+        "precision": 0.9989692846835704,
+        "recall": 0.9989692846835704,
+        "f1-score": 0.9989692846835704,
+        "support": 4851.0
+      },
+      "Electricity": {
+        "precision": 1.0,
+        "recall": 0.9996118765767514,
+        "f1-score": 0.999805900621118,
+        "support": 5153.0
+      },
+      "Gas": {
+        "precision": 0.9995388517408347,
+        "recall": 1.0,
+        "f1-score": 0.9997693726937269,
+        "support": 4335.0
+      },
+      "Public Transport": {
+        "precision": 0.9998455359901143,
+        "recall": 0.9998455359901143,
+        "f1-score": 0.9998455359901143,
+        "support": 12948.0
+      },
+      "Home Improvement": {
+        "precision": 0.9992764109985528,
+        "recall": 0.9992764109985528,
+        "f1-score": 0.9992764109985528,
+        "support": 1382.0
+      },
+      "Automotive": {
+        "precision": 0.9983757444504602,
+        "recall": 1.0,
+        "f1-score": 0.9991872121376321,
+        "support": 1844.0
+      },
+      "Utilities": {
+        "precision": 0.9999051233396584,
+        "recall": 0.9997154240182129,
+        "f1-score": 0.9998102646807703,
+        "support": 10542.0
+      },
+      "Other": {
+        "precision": 0.9997360641891891,
+        "recall": 0.9996832937450515,
+        "f1-score": 0.9997096782707382,
+        "support": 18945.0
+      },
+      "accuracy": 0.9996833333333334,
+      "macro avg": {
+        "precision": 0.9994558769240475,
+        "recall": 0.9996377282515316,
+        "f1-score": 0.9995467075095279,
+        "support": 60000.0
+      },
+      "weighted avg": {
+        "precision": 0.999683422356234,
+        "recall": 0.9996833333333334,
+        "f1-score": 0.9996833486802257,
+        "support": 60000.0
+      }
+    }
+  },
+  "limitation": "Customer-disjoint synthetic data shares merchant templates across splits; near-perfect scores do not establish generalisation to unseen banks or merchants."
+}

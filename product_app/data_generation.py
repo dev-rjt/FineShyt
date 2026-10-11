@@ -226,22 +226,29 @@ def make_takeup(c, veh, prods, energy_agg, digital_agg, txn_spend):
 def make_green_products():
     return pd.DataFrame([
         ("GP01", "EV Finance", "Transport", "Rules: vehicle owner, non-EV, age 18-78, no existing GP01", "kg CO2e avoided / yr (tailpipe vs grid)"),
-        ("GP02", "Green Home Loan", "Home", "Rules: home owner or mortgage holder; retrofit / heat-pump / insulation use case", "kg CO2e avoided / yr (gas+elec reduction)"),
+        ("GP02", "Green Home Loan", "Home", "Rules: home owner or mortgage holder; retrofit / insulation use case, excluding solar generation", "kg CO2e avoided / yr (gas+elec reduction)"),
         ("GP03", "Solar Finance", "Home", "Rules: home owner; PV installation use case only (generation assets)", "kg CO2e avoided / yr (grid displacement)"),
         ("GP04", "Paperless Banking", "Digital", "Rules: paper statement share > 15%", "paper statements avoided / yr (reported separately from CO2e)")],
         columns=["product_id", "product", "category", "eligibility", "sustainability_metric"])
 
 def make_emission_factors():
-    return pd.DataFrame([
-        ("grid_electricity", "kWh", 0.207, "UK DESNZ/DEFRA GHG conversion factors (~2023/24 grid avg) - VERIFY latest"),
-        ("natural_gas", "kWh", 0.183, "UK DESNZ/DEFRA GHG conversion factors (gross CV) - VERIFY latest"),
-        ("car_petrol", "km", 0.170, "UK DESNZ avg petrol car, approx - VERIFY latest"),
-        ("car_diesel", "km", 0.171, "UK DESNZ avg diesel car, approx - VERIFY latest"),
-        ("car_hybrid", "km", 0.120, "UK DESNZ hybrid car, approx - VERIFY latest"),
-        ("ev_energy_intensity", "kWh/km", 0.200, "Typical BEV consumption assumption (not a CO2e factor)"),
-        ("paper_statement", "statement", 0.025, "ASSUMPTION: ~3 A4 sheets + envelope; replace with sourced LCA value"),
-        ("pv_yield", "kWh/kWp/yr", 900.0, "Typical UK PV yield assumption (not a CO2e factor)")],
-        columns=["activity", "unit", "kg_co2e_per_unit", "source"])
+    """Verified 2025 UK operational factors, matching the demo activity year.
+
+    Extracted from Factors by Category in factors_2025.xlsx. Renewable yield
+    and EV consumption are scenario assumptions, not emissions factors.
+    """
+    url = "https://www.gov.uk/government/publications/greenhouse-gas-reporting-conversion-factors-2025"
+    rows = [
+        ("grid_electricity", "kWh", .177, "7_400_4000_5_1", "Electricity generated, UK"),
+        ("natural_gas", "kWh", .18296, "1_100_1004_6_1", "Natural gas, gross calorific value"),
+        ("car_petrol", "km", .16272, "4_301_3070_4_1", "Average petrol passenger car"),
+        ("car_diesel", "km", .17304, "4_301_3069_4_1", "Average diesel passenger car"),
+        ("car_hybrid", "km", .12825, "4_301_3071_4_1", "Average non-plug-in hybrid passenger car")]
+    return pd.DataFrame([dict(activity=a, unit=u, kg_co2e_per_unit=v,
+        source="DESNZ 2025 flat file", source_url=url, source_row_id=rid,
+        source_year=2025, description=desc, verified=True,
+        boundary="Operational combustion/generation only; upstream and manufacturing excluded")
+        for a,u,v,rid,desc in rows])
 
 
 def _ground_truth_aggregates(c, en, dg, tx):
@@ -258,6 +265,8 @@ def _ground_truth_aggregates(c, en, dg, tx):
     return e, g[["paper_share", "digital_tx_m", "branch_visits_m"]], spend
 
 def make_all(n=N_CUSTOMERS, save=True):
+    global rng
+    rng = np.random.default_rng(SEED)  # every invocation is reproducible
     c = make_customers(n); veh = make_vehicles(c); en, be, bg = make_energy(c); dg = make_digital(c)
     pr = make_products(c, veh)
     tx = make_transactions(c, veh, be, bg, pr)

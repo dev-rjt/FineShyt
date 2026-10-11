@@ -1,159 +1,217 @@
-"""FR3 - Propensity models (one per product).
+"""Product propensity. Selection, calibration and threshold use TRAIN only.
 
-Algorithm : LightGBM gradient-boosted trees, 5-seed bagged ensemble, Platt-calibrated.
-Training  : only rules-eligible ("candidate") customers, customer-level 70/15/15 split.
-Anti-overfit / anti-underfit controls
-  * low learning rate (grid 0.02/0.05) + number of rounds chosen by 5-fold CV early stopping on TRAIN only
-  * shallow trees (num_leaves 4/8/16), min_child_samples 20/50, L1/L2 regularisation, row+feature subsampling
-  * hyper-parameters picked by CV logloss (not by test); val set used ONLY for calibration + threshold; test untouched
-  * diagnostics: train vs CV vs val vs test AUC gap; compared with logistic-regression & prevalence baselines
-Confidence : 0.4*ensemble agreement + 0.3*feature completeness + 0.3*in-distribution support (documented, != propensity)
+Customer-level train/val/test partition is shared with transaction classification.
+Training CV selects logistic regression or LightGBM by log loss. OOF logits fit
+regularised Platt scaling; cross-fitted calibration selects an F1 threshold.
+Validation/test do not participate in any fitting or model choice.
 """
-import itertools, joblib, json, numpy as np, pandas as pd, lightgbm as lgb
+import itertools, json, joblib
+import numpy as np
+import pandas as pd
+import lightgbm as lgb
+from sklearn.base import clone
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import make_pipeline
 from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import StandardScaler
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import roc_auc_score, average_precision_score, log_loss, brier_score_loss, precision_recall_curve
+from sklearn.model_selection import train_test_split, StratifiedKFold
+from sklearn.metrics import (roc_auc_score, average_precision_score, log_loss,
+    brier_score_loss, precision_recall_curve, confusion_matrix, precision_score,
+    recall_score, f1_score, accuracy_score)
 from config import *
 from features import MODEL_FEATURES
 
-KEY_FEATURES = {  # inputs whose absence reduces confidence
-    "EV_FINANCE": ["annual_mileage", "fuel_spend_m", "vehicle_age", "fuel_type_code"],
-    "GREEN_HOME": ["elec_kwh_yr", "gas_kwh_yr", "home_impr_spend_m", "income_idx"],
-    "SOLAR_FINANCE": ["elec_kwh_yr", "income_idx", "home_impr_spend_m"],
-    "PAPERLESS": ["paper_share", "digital_tx_m", "branch_visits_m"]}
-
-REASON_CODES = {  # feature -> reason code (emitted when its SHAP contribution is positive)
-    "fuel_spend_m": "HIGH_FUEL_SPEND", "annual_mileage": "HIGH_ANNUAL_MILEAGE", "vehicle_age": "OLDER_VEHICLE",
-    "has_vehicle_loan": "EXISTING_VEHICLE_LOAN", "fuel_share_of_spend": "FUEL_SHARE_OF_SPEND_HIGH",
-    "n_fuel_txn": "FREQUENT_REFUELLING", "fuel_spend_trend": "RISING_FUEL_SPEND", "fuel_type_code": "ICE_VEHICLE_TYPE",
-    "sustainability_preference": "HIGH_SUSTAINABILITY_PREFERENCE", "urban": "URBAN_CHARGING_ACCESS",
-    "income_idx": "INCOME_SUPPORTS_AFFORDABILITY", "home_owner": "HOME_OWNER", "has_mortgage": "EXISTING_MORTGAGE",
-    "has_isa": "EXISTING_INVESTMENTS", "elec_kwh_yr": "HIGH_ELECTRICITY_USE", "gas_kwh_yr": "HIGH_GAS_USE",
-    "heating_kwh_yr": "HIGH_HEATING_ENERGY_USE", "winter_gas_share": "HIGH_WINTER_HEATING_LOAD",
-    "home_impr_spend_m": "HOME_IMPROVEMENT_ACTIVITY", "spend_utilities_m": "HIGH_UTILITY_SPEND",
-    "spend_electricity_m": "HIGH_ELECTRICITY_SPEND", "spend_gas_m": "HIGH_GAS_SPEND",
-    "paper_share": "HIGH_PAPER_STATEMENT_SHARE", "digital_tx_m": "HIGH_DIGITAL_ACTIVITY",
-    "branch_visits_m": "LOW_BRANCH_USE", "digital_usage": "HIGH_DIGITAL_ENGAGEMENT", "digital_tx_trend": "RISING_DIGITAL_ACTIVITY",
-    "age": "AGE_PROFILE_FIT", "total_balance": "STRONG_BALANCE_PROFILE", "inflow_m": "STABLE_INCOME_INFLOW",
-    "spend_public_transport_m": "PUBLIC_TRANSPORT_USER", "spend_automotive_m": "AUTOMOTIVE_SPEND",
-    "vehicle_type_code": "VEHICLE_TYPE_FIT", "has_savings": "HAS_SAVINGS", "has_credit_card": "HAS_CREDIT_CARD", "n_products": "MULTI_PRODUCT_CUSTOMER"}
+KEY_FEATURES = {
+    'EV_FINANCE': ['annual_mileage','fuel_spend_m','vehicle_age','fuel_type_code'],
+    'GREEN_HOME': ['elec_kwh_yr','gas_kwh_yr','home_impr_spend_m','income_idx'],
+    'SOLAR_FINANCE': ['elec_kwh_yr','income_idx','home_impr_spend_m'],
+    'PAPERLESS': ['paper_share','digital_tx_m','branch_visits_m']}
 
 def make_splits(f, takeup):
-    """Customer-level split, stratified on 'any take-up' so every split has positives."""
-    # Convert explicitly to NumPy: pandas 3 may expose Arrow-backed string
-    # arrays, which older scikit-learn indexing utilities cannot slice with an
-    # integer index array.
-    ids = f.customer_id.astype(str).to_numpy(dtype=object)
-    strat = takeup[[c for c in takeup if c.startswith("takeup_")]].max(axis=1).to_numpy()
-    tr, rest = train_test_split(ids, test_size=1 - SPLIT["train"], random_state=SEED, stratify=strat)
-    va, te = train_test_split(rest, test_size=SPLIT["test"] / (SPLIT["val"] + SPLIT["test"]), random_state=SEED,
-                              stratify=pd.Series(strat, index=ids).loc[rest].values)
-    return pd.concat([pd.DataFrame({"customer_id": tr, "split": "train"}), pd.DataFrame({"customer_id": va, "split": "val"}),
-                      pd.DataFrame({"customer_id": te, "split": "test"})])
+    if f.customer_id.duplicated().any() or takeup.customer_id.duplicated().any():
+        raise ValueError('Customer IDs must be unique')
+    ids = f.customer_id.to_numpy(dtype=object)  # pandas 3 returns an Arrow array from .values
+    lab = takeup.set_index('customer_id').reindex(ids)
+    if lab.filter(like='takeup_').isna().any().any(): raise ValueError('Missing customer labels')
+    outcomes=lab.filter(like='takeup_')
+    if outcomes.shape[1]==0 or not outcomes.isin([0,1]).all().all(): raise ValueError('Take-up labels must be 0/1')
+    strat = outcomes.max(axis=1).values
+    tr, rest = train_test_split(ids, test_size=1-SPLIT['train'], random_state=SEED, stratify=strat)
+    va, te = train_test_split(rest, test_size=SPLIT['test']/(SPLIT['val']+SPLIT['test']),
+        random_state=SEED, stratify=pd.Series(strat,index=ids).loc[rest].values)
+    return pd.concat([pd.DataFrame({'customer_id':a,'split':s}) for a,s in
+        [(tr,'train'),(va,'val'),(te,'test')]], ignore_index=True)
 
-def _auc_ci(y, p, n=500):
-    rng = np.random.default_rng(SEED); a = []
+def _auc_ci(y,p,n=500):
+    rng=np.random.default_rng(SEED); vals=[]
     for _ in range(n):
-        i = rng.integers(0, len(y), len(y))
-        if y[i].min() != y[i].max(): a.append(roc_auc_score(y[i], p[i]))
-    return np.percentile(a, [2.5, 97.5])
+        ix=rng.integers(0,len(y),len(y))
+        if len(np.unique(y[ix]))==2: vals.append(roc_auc_score(y[ix],p[ix]))
+    return np.percentile(vals,[2.5,97.5]).tolist() if vals else [None,None]
 
-def _metrics(y, p):
-    top = max(1, int(.1 * len(y))); order = np.argsort(-p)
-    return dict(auc=roc_auc_score(y, p), pr_auc=average_precision_score(y, p), logloss=log_loss(y, np.clip(p, 1e-6, 1 - 1e-6)),
-                brier=brier_score_loss(y, p), lift_top10=y[order[:top]].mean() / max(y.mean(), 1e-9), prevalence=y.mean(), n=len(y), n_pos=int(y.sum()))
+def _metrics(y,p,threshold=.5):
+    y=np.asarray(y); p=np.clip(np.asarray(p),1e-8,1-1e-8); yh=p>=threshold
+    if not len(y): return {'n':0,'status':'NO_EVALUATION_ROWS'}
+    bins=[]; ece=0.
+    for i in range(10):
+        mask=(p>=i/10)&(p<(i+1)/10)
+        if mask.any():
+            obs=float(y[mask].mean()); pred=float(p[mask].mean())
+            bins.append({'lower':i/10,'upper':(i+1)/10,'n':int(mask.sum()),'mean_prediction':pred,'observed_rate':obs})
+            ece+=mask.mean()*abs(obs-pred)
+    k=max(1,int(.1*len(y))); order=np.argsort(-p,kind='stable'); two=len(np.unique(y))==2
+    return dict(auc=float(roc_auc_score(y,p)) if two else None,
+        pr_auc=float(average_precision_score(y,p)) if y.sum() else None,
+        logloss=float(log_loss(y,p,labels=[0,1])),brier=float(brier_score_loss(y,p)),
+        lift_top10=float(y[order[:k]].mean()/y.mean()) if y.mean() else None,
+        precision=float(precision_score(y,yh,zero_division=0)),recall=float(recall_score(y,yh,zero_division=0)),
+        f1=float(f1_score(y,yh,zero_division=0)),accuracy=float(accuracy_score(y,yh)),
+        confusion_matrix=confusion_matrix(y,yh,labels=[0,1]).tolist(),threshold=float(threshold),
+        ece_10bins=float(ece),calibration_bins=bins,prevalence=float(y.mean()),n=len(y),n_pos=int(y.sum()))
 
-def tune(X, y):
-    """5-fold CV grid; returns best params + best rounds (early-stopped) + full grid table."""
-    rows = []; ds = lgb.Dataset(X, y, free_raw_data=False)
-    for lr, nl, mcs in itertools.product(GRID["learning_rate"], GRID["num_leaves"], GRID["min_child_samples"]):
-        p = dict(LGB_BASE, learning_rate=lr, num_leaves=nl, min_child_samples=mcs, seed=SEED)
-        cv = lgb.cv(p, ds, num_boost_round=MAX_ROUNDS, nfold=5, stratified=True, seed=SEED,
-                    callbacks=[lgb.early_stopping(EARLY_STOP, verbose=False)])
-        k = "valid binary_logloss-mean"; rows.append(dict(learning_rate=lr, num_leaves=nl, min_child_samples=mcs,
-                                                          cv_logloss=min(cv[k]), best_rounds=int(np.argmin(cv[k]) + 1)))
-    g = pd.DataFrame(rows).sort_values("cv_logloss").reset_index(drop=True)
-    b = g.iloc[0]
-    return dict(LGB_BASE, learning_rate=float(b.learning_rate), num_leaves=int(b.num_leaves),
-                min_child_samples=int(b.min_child_samples)), int(b.best_rounds), g
+def _lr(C=.3):
+    return make_pipeline(SimpleImputer(strategy='median',add_indicator=True,keep_empty_features=True),
+        StandardScaler(),LogisticRegression(C=C,max_iter=2000,random_state=SEED))
+
+def _folds(y):
+    n=min(5,int(np.bincount(np.asarray(y,dtype=int),minlength=2).min()))
+    if n<3: raise ValueError('Need at least three positive and three negative training examples per product')
+    return list(StratifiedKFold(n_splits=n,shuffle=True,random_state=SEED).split(np.zeros(len(y)),y))
+
+def _crossfit(est,X,y,folds):
+    raw=np.empty(len(y)); models=[]; losses=[]
+    for a,b in folds:
+        m=clone(est).fit(X.iloc[a],y[a]); models.append(m)
+        z=m.decision_function(X.iloc[b]) if hasattr(m,'decision_function') else m.predict(X.iloc[b],raw_score=True)
+        raw[b]=z; losses.append(log_loss(y[b],1/(1+np.exp(-np.clip(z,-40,40))),labels=[0,1]))
+    return raw,models,losses
+
+def tune(X,y,folds=None):
+    folds=folds or _folds(y); rows=[]; ds=lgb.Dataset(X,y,free_raw_data=False)
+    for lr,nl,mcs in itertools.product(GRID['learning_rate'],GRID['num_leaves'],GRID['min_child_samples']):
+        p=dict(LGB_BASE,learning_rate=lr,num_leaves=nl,min_child_samples=mcs,seed=SEED)
+        cv=lgb.cv(p,ds,num_boost_round=MAX_ROUNDS,folds=folds,seed=SEED,
+            callbacks=[lgb.early_stopping(EARLY_STOP,verbose=False)])
+        k='valid binary_logloss-mean'; j=int(np.argmin(cv[k]))
+        rows.append(dict(learning_rate=lr,num_leaves=nl,min_child_samples=mcs,
+            cv_logloss=float(cv[k][j]),cv_std=float(cv['valid binary_logloss-stdv'][j]),best_rounds=j+1))
+    g=pd.DataFrame(rows).sort_values('cv_logloss').reset_index(drop=True); b=g.iloc[0]
+    p=dict(LGB_BASE,learning_rate=float(b.learning_rate),num_leaves=int(b.num_leaves),min_child_samples=int(b.min_child_samples))
+    return p,int(b.best_rounds),g
 
 class PropensityModel:
-    def __init__(self, product, feats): self.product, self.feats = product, feats
-    def _raw(self, X):  # per-member raw logits -> (n, n_members)
-        # Single-threaded inference is fast for request-sized batches and avoids
-        # OpenMP worker-pool deadlocks when FastAPI serves a score in a thread.
-        return np.column_stack([m.predict(X[self.feats], raw_score=True, num_threads=1) for m in self.models])
-    def fit(self, Xtr, ytr, Xva, yva):
-        self.params, self.rounds, self.grid = tune(Xtr[self.feats], ytr)
-        self.models = []
-        for s in range(N_ENSEMBLE):
-            p = dict(self.params, seed=SEED + s, bagging_seed=SEED + s, feature_fraction_seed=SEED + s)
-            self.models.append(lgb.train(p, lgb.Dataset(Xtr[self.feats], ytr), num_boost_round=max(30, int(self.rounds * 1.1))))
-        z = self._raw(Xva).mean(1, keepdims=True)           # Platt scaling fit on VAL (never on test)
-        self.cal = LogisticRegression(C=1e6).fit(z, yva)
-        self.support = {f: np.nanpercentile(Xtr[f], [1, 99]) for f in self.feats}
-        pv = self.predict(Xva)["propensity"].values
-        prec, rec, thr = precision_recall_curve(yva, pv); f1 = 2 * prec * rec / (prec + rec + 1e-9)
-        self.threshold = float(thr[np.argmax(f1[:-1])])      # operating threshold = max-F1 on val
-        # learned feature weights (normalised gain, averaged over ensemble)
-        gain = np.mean([m.feature_importance("gain") for m in self.models], axis=0)
-        self.importance = pd.Series(gain / gain.sum(), index=self.feats).sort_values(ascending=False)
+    def __init__(self,product,feats): self.product,self.feats=product,feats
+    def _X(self,X): return X.reindex(columns=self.feats).apply(pd.to_numeric,errors='coerce').replace([np.inf,-np.inf],np.nan)
+    def _member_raw(self,m,X):
+        return m.decision_function(X) if hasattr(m,'decision_function') else m.predict(X,raw_score=True)
+    def _raw(self,X):
+        xx=self._X(X); return np.column_stack([self._member_raw(m,xx) for m in self.models])
+    def fit(self,Xtr,ytr,Xva=None,yva=None):
+        X=self._X(Xtr); y=np.asarray(ytr,dtype=int); folds=_folds(y); choices=[]
+        best_lr=None
+        for C in [.03,.1,.3,1.,3.]:
+            raw,mods,loss=_crossfit(_lr(C),X,y,folds)
+            choices.append({'family':'logistic_regression','C':C,'cv_logloss':float(np.mean(loss))})
+            if best_lr is None or np.mean(loss)<best_lr[0]: best_lr=(np.mean(loss),C,raw,mods)
+        self.params,self.rounds,self.grid=tune(X,y,folds)
+        params={k:v for k,v in self.params.items() if k not in ['metric','n_jobs']}
+        tree=lgb.LGBMClassifier(**params,n_jobs=2,n_estimators=self.rounds,random_state=SEED)
+        tree_raw,tree_mods,tree_losses=_crossfit(tree,X,y,folds)
+        choices.append({'family':'lightgbm','cv_logloss':float(np.mean(tree_losses)),**self.params,'rounds':self.rounds})
+        self.selection=pd.DataFrame(choices)
+        if best_lr[0]<=np.mean(tree_losses):
+            self.family='logistic_regression'; self.lr_C=best_lr[1]
+            oof,self.uncertainty_models=best_lr[2:]; self.models=[_lr(self.lr_C).fit(X,y)]
+        else:
+            self.family='lightgbm'; oof,self.uncertainty_models=tree_raw,tree_mods; self.models=[]
+            for s in range(N_ENSEMBLE):
+                m=clone(tree).set_params(random_state=SEED+s,bagging_seed=SEED+s,feature_fraction_seed=SEED+s).fit(X,y)
+                self.models.append(m)
+        # Calibration input is always an out-of-fold prediction, never a fitted-row prediction.
+        self.cal=LogisticRegression(C=1.0,max_iter=2000).fit(oof[:,None],y)
+        crosscal=np.empty(len(y))
+        for a,b in folds:
+            cal=LogisticRegression(C=1.0,max_iter=2000).fit(oof[a,None],y[a])
+            crosscal[b]=cal.predict_proba(oof[b,None])[:,1]
+        prec,rec,thr=precision_recall_curve(y,crosscal); f1=2*prec*rec/(prec+rec+1e-12)
+        self.threshold=float(thr[np.argmax(f1[:-1])])
+        self.support={k:np.nanpercentile(X[k],[1,99]) if X[k].notna().any() else [np.nan,np.nan] for k in self.feats}
+        self.reference=X.median(); self.n_positive=int(y.sum())
+        if self.family=='lightgbm': gain=np.mean([m.booster_.feature_importance('gain') for m in self.models],axis=0)
+        else: gain=np.abs(self.models[0][-1].coef_[0][:len(self.feats)])
+        self.importance=pd.Series(gain/max(gain.sum(),1e-12),index=self.feats).sort_values(ascending=False)
+        self.oof_metrics=_metrics(y,crosscal,self.threshold)
+        self.oof_note='Diagnostic only: CV model choice and cross-fitted calibration use training labels; validation/test are the independent estimates.'
         return self
-    def predict(self, X):
-        Z = self._raw(X); pm = self.cal.predict_proba(Z.mean(1, keepdims=True))[:, 1]
-        pe = np.column_stack([self.cal.predict_proba(Z[:, [i]])[:, 1] for i in range(Z.shape[1])])
-        agree = 1 - np.minimum(1, pe.std(1) / 0.10)
-        key = KEY_FEATURES[self.product]
-        complete = X[key].notna().mean(axis=1).values
-        support = np.mean([((X[k] >= self.support[k][0]) & (X[k] <= self.support[k][1])) | X[k].isna() for k in key], axis=0)
-        # missing key inputs are penalised through completeness; out-of-range through support
-        conf = np.clip(0.4 * agree + 0.3 * complete + 0.3 * support, 0, 1)
-        return pd.DataFrame({"propensity": pm, "confidence": conf}, index=X.index)
-    def reason_codes(self, X, top_k=3):
-        """Top positive SHAP contributions (LightGBM pred_contrib, ensemble mean) mapped to reason codes."""
-        C = np.mean([m.predict(X[self.feats], pred_contrib=True, num_threads=1)[:, :-1] for m in self.models], axis=0)
-        out = []
-        for row in C:
-            idx = [i for i in np.argsort(-row) if row[i] > 0.05][:top_k]
-            out.append([REASON_CODES.get(self.feats[i], self.feats[i].upper()) for i in idx])
+    def predict(self,X):
+        xx=self._X(X)
+        if not len(xx): return pd.DataFrame(columns=['propensity','confidence'],index=X.index)
+        p=self.cal.predict_proba(self._raw(X).mean(axis=1)[:,None])[:,1]
+        member=np.column_stack([self.cal.predict_proba(self._member_raw(m,xx)[:,None])[:,1] for m in self.uncertainty_models])
+        key=KEY_FEATURES[self.product]; complete=xx[key].notna().mean(axis=1).values
+        support=np.mean([xx[k].between(*self.support[k]).fillna(False).values for k in key],axis=0)
+        agreement=1-np.minimum(1,member.std(axis=1)/.10)
+        conf=np.clip((.4*agreement+.3*complete+.3*support)*min(1,self.n_positive/100),0,1)
+        return pd.DataFrame({'propensity':p,'confidence':conf},index=X.index)
+    def contributions(self,X):
+        xx=self._X(X)
+        if not len(xx): return np.empty((0,len(self.feats)))
+        if self.family=='lightgbm':
+            c=np.mean([m.booster_.predict(xx,pred_contrib=True)[:,:-1] for m in self.models],axis=0)
+        else:
+            m=self.models[0]; transformed=m[:-1].transform(xx)
+            ref=m[:-1].transform(pd.DataFrame([self.reference],columns=self.feats))[0]
+            c=(transformed[:,:len(self.feats)]-ref[:len(self.feats)])*m[-1].coef_[0][:len(self.feats)]
+        return c*float(self.cal.coef_[0,0])
+    def evidence(self,X,top_k=3):
+        xx=self._X(X); c=self.contributions(X); out=[]
+        for j,(_,row) in enumerate(xx.iterrows()):
+            ix=[i for i in np.argsort(-c[j]) if c[j,i]>.01 and pd.notna(row.iloc[i])][:top_k]
+            out.append([{'reason_code':'POSITIVE_MODEL_SIGNAL_'+self.feats[i].upper(),
+                'feature':self.feats[i],'observed_value':float(row.iloc[i]),
+                'log_odds_contribution':round(float(c[j,i]),5)} for i in ix])
         return out
+    def reason_codes(self,X,top_k=3): return [[e['reason_code'] for e in row] for row in self.evidence(X,top_k)]
 
-def baseline_lr(Xtr, ytr, Xs):
-    m = make_pipeline(SimpleImputer(strategy="median"), StandardScaler(), LogisticRegression(C=0.3, max_iter=2000)).fit(Xtr, ytr)
-    return m, {k: m.predict_proba(v)[:, 1] for k, v in Xs.items()}
+def baseline_lr(Xtr,ytr,Xs):
+    m=_lr().fit(Xtr,ytr); return m,{k:m.predict_proba(v)[:,1] for k,v in Xs.items()}
 
-def train_all(F, labels, rules, split, verbose=True):
-    """F: customer-360 indexed by customer_id. Returns models + evaluation report."""
-    models, report = {}, {}
-    sp = split.set_index("customer_id").split.reindex(F.index)
+def train_all(F,labels,rules,split,verbose=True):
+    lab=labels.set_index('customer_id').reindex(F.index); sp=split.set_index('customer_id').split.reindex(F.index)
+    if sp.isna().any() or lab.isna().any().any(): raise ValueError('Unaligned labels or splits')
+    models,report={},{}
     for prod in PRODUCTS:
-        cand = rules[f"eligible_{prod}"] & (labels.set_index("customer_id")[f"candidate_{prod}"].reindex(F.index) == 1)
-        y = labels.set_index("customer_id")[f"takeup_{prod}"].reindex(F.index)
-        feats = MODEL_FEATURES[prod]; d = lambda s: cand & (sp == s)
-        Xtr, ytr, Xva, yva, Xte, yte = F[d("train")], y[d("train")].values, F[d("val")], y[d("val")].values, F[d("test")], y[d("test")].values
-        m = PropensityModel(prod, feats).fit(Xtr, ytr, Xva, yva); models[prod] = m
-        _, base = baseline_lr(Xtr[feats], ytr, {"val": Xva[feats], "test": Xte[feats]})
-        r = {}
-        for nm, X, yy in [("train", Xtr, ytr), ("val", Xva, yva), ("test", Xte, yte)]:
-            r[nm] = _metrics(yy, m.predict(X)["propensity"].values)
-        r["baseline_logreg_test"] = _metrics(yte, base["test"])
-        r["baseline_prevalence_test_logloss"] = log_loss(yte, np.full(len(yte), ytr.mean()))
-        r["auc_test_ci95"] = _auc_ci(yte, m.predict(Xte)["propensity"].values).round(3).tolist()
-        r["cv_best"] = dict(m.params, rounds=m.rounds); r["threshold"] = m.threshold
-        r["overfit_gap_auc_train_minus_test"] = r["train"]["auc"] - r["test"]["auc"]
-        report[prod] = r
-        m.grid.to_csv(OUT_DIR / f"cv_grid_{prod}.csv", index=False); m.importance.to_csv(OUT_DIR / f"feature_weights_{prod}.csv", header=["normalised_gain"])
-        if verbose:
-            print(f"\n=== {prod}: n_train={len(ytr)} (pos {int(ytr.sum())}), n_val={len(yva)}, n_test={len(yte)} (pos {int(yte.sum())})")
-            print(f"  chosen: lr={m.params['learning_rate']} leaves={m.params['num_leaves']} min_child={m.params['min_child_samples']} rounds={m.rounds}")
-            for nm in ("train", "val", "test"):
-                x = r[nm]; print(f"  {nm:5s} AUC={x['auc']:.3f} PR-AUC={x['pr_auc']:.3f} logloss={x['logloss']:.3f} brier={x['brier']:.3f} lift@10%={x['lift_top10']:.2f}")
-            b = r["baseline_logreg_test"]; print(f"  baseline LogReg(test) AUC={b['auc']:.3f} PR-AUC={b['pr_auc']:.3f} logloss={b['logloss']:.3f} | prevalence-only logloss={r['baseline_prevalence_test_logloss']:.3f}")
-            print(f"  test AUC 95% CI {r['auc_test_ci95']}  train-test AUC gap={r['overfit_gap_auc_train_minus_test']:.3f}")
-            print("  top weights:", ", ".join(f"{k}={v:.2f}" for k, v in m.importance.head(5).items()))
-    joblib.dump(models, MODEL_DIR / "propensity_models.joblib")
-    json.dump(report, open(OUT_DIR / "evaluation_report.json", "w"), indent=2, default=float)
-    return models, report
+        cand=rules[f'eligible_{prod}'].reindex(F.index).fillna(False)
+        # Candidate fields in label files are NOT features or training gates.
+        y=lab[f'takeup_{prod}']; feats=MODEL_FEATURES[prod]
+        xs={s:F[cand&(sp==s)] for s in ['train','val','test']}
+        ys={s:y.reindex(xs[s].index).to_numpy(dtype=int) for s in xs}
+        m=PropensityModel(prod,feats).fit(xs['train'],ys['train']); models[prod]=m
+        _,baseline=baseline_lr(xs['train'][feats],ys['train'],{s:xs[s][feats] for s in ['val','test']})
+        r={s:_metrics(ys[s],m.predict(xs[s]).propensity.values,m.threshold) for s in xs}
+        for s in ['val','test']:
+            r[f'baseline_logreg_{s}']=_metrics(ys[s],baseline[s])
+            r[f'baseline_prevalence_{s}']=_metrics(ys[s],np.full(len(ys[s]),ys['train'].mean()))
+        r['selected_model']=m.family
+        r['model_hyperparameters']={'C':m.lr_C} if m.family=='logistic_regression' else {**m.params,'rounds':m.rounds}
+        r['training_cv_choices']=json.loads(m.selection.to_json(orient='records'))
+        r['threshold']=m.threshold; r['threshold_method']='Maximum F1 on training cross-fitted OOF calibrated scores; illustrative marketing operating point, not financial eligibility.'
+        r['calibration_method']='Regularised sigmoid (C=1) on training OOF logits; no validation/test fitting.'
+        r['confidence_method']='Heuristic: (0.4 fold-model agreement + 0.3 key-input completeness + 0.3 training p1-p99 support) * min(1, training positives/100); not a probability of correctness.'
+        r['auc_test_ci95']=_auc_ci(ys['test'],m.predict(xs['test']).propensity.values)
+        r['overfit_gap_auc_train_minus_test']=r['train']['auc']-r['test']['auc']
+        r['training_oof_diagnostic']=m.oof_metrics; r['training_oof_note']=m.oof_note
+        # Descriptive subgroup metrics; suppress small groups rather than imply fairness certification.
+        r['subgroup_validation']={}
+        for attr,groups in [('age_band',pd.cut(xs['val'].age,[0,30,60,120],labels=['18-30','31-60','61+'])),('region',xs['val'].region)]:
+            p=m.predict(xs['val']).propensity.values
+            r['subgroup_validation'][attr]={str(g):_metrics(ys['val'][groups.eq(g).values],p[groups.eq(g).values],m.threshold)
+                if groups.eq(g).sum()>=30 and ys['val'][groups.eq(g).values].sum()>=5 else {'n':int(groups.eq(g).sum()),'status':'INSUFFICIENT_SUBGROUP_SAMPLE'} for g in groups.dropna().unique()}
+        report[prod]=r
+        m.grid.to_csv(OUT_DIR/f'cv_grid_{prod}.csv',index=False)
+        m.selection.to_csv(OUT_DIR/f'model_selection_{prod}.csv',index=False)
+        m.importance.to_csv(OUT_DIR/f'feature_weights_{prod}.csv',header=['normalised_importance'])
+        if verbose: print(f'{prod}: {m.family}, val AUC={r["val"]["auc"]:.4f}, test AUC={r["test"]["auc"]:.4f}, test logloss={r["test"]["logloss"]:.4f}',flush=True)
+    joblib.dump(models,MODEL_DIR/'propensity_models.joblib')
+    (OUT_DIR/'evaluation_report.json').write_text(json.dumps(report,indent=2,allow_nan=False))
+    return models,report

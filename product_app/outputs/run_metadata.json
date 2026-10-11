@@ -1,0 +1,25 @@
+{
+  "python": "3.14.7",
+  "versions": {
+    "numpy": "2.5.4",
+    "pandas": "3.0.6",
+    "scikit-learn": "1.9.1",
+    "lightgbm": "4.7.0",
+    "joblib": "1.6.0"
+  },
+  "seed": 42,
+  "input_sha256": {
+    "customers.csv": "3014bfa8930b57bed5349ce413533c124ea81b1c88aa92ef129710d659454134",
+    "products.csv": "a2e57d1eaa08ac6926d78ac9ccb980bcda64657257300628961fe495648d795e",
+    "model_assumptions.csv": "691abf57b020ef1cf4e483b387173aa5d311b75f26bc534c2eee4de82fc99bed",
+    "green_products.csv": "33f2e9a8601380210205803968d7b813f81a4ff7d01faf722e1da09d5eba4c29",
+    "energy_usage.csv": "7e33312333bfd551f43f3f3d6ae130e069c3f90bfa0ba8be78722f4f3e4d4b27",
+    "labels_takeup.csv": "81213cabacc96ca9b790fd22e7ef928bdd9ae31e7a5dcbc82fb18b6ab3674733",
+    "digital_usage.csv": "d0e46665d1e5335405add5c24ec9fe6ed1827d61a47fe64fc0ee6e6074c948ba",
+    "labels_txn_category.csv": "d83a5517f676033570019947c22e2e9f55346f7fa6538261b66cd29ed7068dee",
+    "emissions_factors.csv": "81501c2eda034b16bff392494981f076c40b423c16e56ac14131c6ed90defdcc",
+    "transactions.csv": "5d84673c2c1865e275c0143fa6c96e49df115994c7b301406487f82824b3ed44",
+    "vehicles.csv": "bf657f069978ce4c4ed923e27164e4b4079a8af1d994d98c6599d2385ab1e7b1"
+  },
+  "elapsed_seconds": 32.62
+}

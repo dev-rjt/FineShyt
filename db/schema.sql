@@ -81,7 +81,12 @@ CREATE TABLE emission_factors (
     source TEXT NOT NULL,
     factor_id TEXT NOT NULL UNIQUE,
     source_year INTEGER,
-    factor_version TEXT NOT NULL
+    factor_version TEXT NOT NULL,
+    source_url TEXT,
+    source_row_id TEXT,
+    description TEXT,
+    verified INTEGER,
+    boundary TEXT
 );
 
 CREATE TABLE model_assumptions (
@@ -125,6 +130,8 @@ CREATE TABLE customer_features (
     n_products REAL NOT NULL,
     elec_kwh_yr REAL,
     gas_kwh_yr REAL,
+    energy_months_observed REAL,
+    digital_months_observed REAL,
     heating_kwh_yr REAL,
     winter_gas_share REAL,
     paper_stmts_yr INTEGER,
@@ -164,6 +171,11 @@ CREATE TABLE recommendations (
     impact_status TEXT NOT NULL,
     est_avoided_kg_co2e_yr REAL,
     impact_json TEXT NOT NULL,
+    financial_eligibility TEXT,
+    suitability_status TEXT,
+    model_family TEXT,
+    evidence_json TEXT,
+    review_required INTEGER,
     PRIMARY KEY (customer_id, opportunity)
 );
 

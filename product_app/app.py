@@ -116,6 +116,15 @@ def plot(fig, height=None):
     return fig
 
 
+def co2e_range_text(impact: dict, decimals: int = 1, unit: str = "kg/yr") -> str:
+    """CO2e range for a tile, or a plain note when no sourced factor exists (e.g. Paperless)."""
+    low = impact.get("estimate_low", impact.get("avoided_kg_co2e_per_year"))
+    high = impact.get("estimate_high", impact.get("avoided_kg_co2e_per_year"))
+    if low is None or high is None:
+        return "No sourced factor"
+    return f"{low:,.{decimals}f}–{high:,.{decimals}f} {unit}"
+
+
 def friendly_source(source: str) -> str:
     """Business-facing description of the guarded explanation path."""
     return "AI-assisted, verified wording" if source == "llm" else "Verified standard wording"
@@ -384,7 +393,7 @@ if page == "My green insights":
             impact = json.loads(r.impact_json)
             if impact.get("status") == "OK":
                 metrics = st.columns(3)
-                metrics[0].metric("Estimated CO₂e range", f"{impact.get('estimate_low', impact['avoided_kg_co2e_per_year']):,.1f}–{impact.get('estimate_high', impact['avoided_kg_co2e_per_year']):,.1f} kg/year")
+                metrics[0].metric("Estimated CO₂e range", co2e_range_text(impact, 1, "kg/year"))
                 if r.opportunity == "PAPERLESS":
                     metrics[1].metric("Paper statements avoided", f"{impact['paper_statements_avoided']}/year")
                     metrics[2].metric("Paper sheets avoided", f"{impact['paper_sheets_avoided']}/year")
@@ -642,11 +651,11 @@ elif page == "Opportunity desk":
                     q = st.columns(3)
                     q[0].metric("Paper statements avoided", f"{imp['paper_statements_avoided']}/yr")
                     q[1].metric("Sheets avoided", f"{imp['paper_sheets_avoided']}/yr")
-                    q[2].metric("Est. CO₂e range", f"{imp['estimate_low']:,.2f}–{imp['estimate_high']:,.2f} kg/yr")
+                    q[2].metric("Est. CO₂e range", co2e_range_text(imp, 2))
                     st.caption("Digital adoption is shown separately and is not itself a carbon reduction.")
                 else:
                     q = st.columns(3)
-                    q[0].metric("Est. CO₂e range", f"{imp.get('estimate_low', imp['avoided_kg_co2e_per_year']):,.0f}–{imp.get('estimate_high', imp['avoided_kg_co2e_per_year']):,.0f} kg/yr", help="Estimated range, not a measured result")
+                    q[0].metric("Est. CO₂e range", co2e_range_text(imp, 0), help="Estimated range, not a measured result")
                     baseline = imp.get("baseline_kg_co2e")
                     scenario = imp.get("scenario_kg_co2e")
                     q[1].metric("Baseline → scenario", f"{baseline:,.0f} → {scenario:,.0f} kg"
@@ -689,7 +698,7 @@ elif page == "Opportunity desk":
 
 # ----------------------------------------------------------------------------- 3. what-if simulator
 elif page == "Impact planner":
-    from carbon_engine import estimate_impact, ASSUMPTIONS
+    from contract_adapter import ASSUMPTION_TABLE as ASSUMPTIONS, contract_impact as estimate_impact
     hero("Impact planner", "Build a credible sustainability scenario.",
          "Test a customer activity scenario and compare its modelled 12-month impact. Calculations are deterministic, documented and kept separate from customer propensity.",
          ["Scenario planning", "Approved factors", "Baseline vs future state"])
@@ -718,7 +727,7 @@ elif page == "Impact planner":
             st.warning(f"Insufficient data: {imp.get('missing_inputs')}")
         else:
             c = st.columns(3)
-            c[0].metric("Est. CO₂e range", f"{imp.get('estimate_low', imp['avoided_kg_co2e_per_year']):,.1f}–{imp.get('estimate_high', imp['avoided_kg_co2e_per_year']):,.1f} kg/yr")
+            c[0].metric("Est. CO₂e range", co2e_range_text(imp, 1))
             if imp.get("baseline_kg_co2e") is not None and imp.get("scenario_kg_co2e") is not None:
                 c[1].metric("Baseline", f"{imp['baseline_kg_co2e']:,.0f} kg"); c[2].metric("Scenario", f"{imp['scenario_kg_co2e']:,.0f} kg")
                 comparison = go.Figure(go.Bar(x=["Current baseline", "Modelled scenario"],
@@ -756,19 +765,23 @@ elif page == "Model governance":
     rows = []
     for p in PRODUCTS:
         x = rep[p]
-        rows.append(dict(Product=PRODUCT_NAME[p], **{"GBM AUC": x["test"]["auc"], "LogReg AUC": x["baseline_logreg_test"]["auc"],
-                         "GBM PR-AUC": x["test"]["pr_auc"], "LogReg PR-AUC": x["baseline_logreg_test"]["pr_auc"],
-                         "GBM logloss": x["test"]["logloss"], "LogReg logloss": x["baseline_logreg_test"]["logloss"],
-                         "Prevalence logloss": x["baseline_prevalence_test_logloss"], "AUC 95% CI": f"{x['auc_test_ci95'][0]:.2f}–{x['auc_test_ci95'][1]:.2f}",
-                         "Top-10% lift": x["test"]["lift_top10"], "Train–test AUC gap": x["overfit_gap_auc_train_minus_test"], "Threshold": x["threshold"]}))
+        hyper = ", ".join(f"{k}={v}" for k, v in x.get("model_hyperparameters", {}).items())
+        rows.append(dict(Product=PRODUCT_NAME[p], **{
+            "Selected model": f"{x['selected_model'].replace('_', ' ')} ({hyper})" if hyper else x["selected_model"].replace("_", " "),
+            "Model AUC": x["test"]["auc"], "LogReg baseline AUC": x["baseline_logreg_test"]["auc"],
+            "Model PR-AUC": x["test"]["pr_auc"], "LogReg baseline PR-AUC": x["baseline_logreg_test"]["pr_auc"],
+            "Model logloss": x["test"]["logloss"], "LogReg baseline logloss": x["baseline_logreg_test"]["logloss"],
+            "Prevalence logloss": x["baseline_prevalence_test"]["logloss"], "AUC 95% CI": f"{x['auc_test_ci95'][0]:.2f}–{x['auc_test_ci95'][1]:.2f}",
+            "Top-10% lift": x["test"]["lift_top10"], "Train–test AUC gap": x["overfit_gap_auc_train_minus_test"], "Threshold": x["threshold"]}))
     metrics, explainability, monitoring, catalogue = st.tabs(["Evaluation", "Explainability", "Subgroup monitoring", "Product catalogue"])
     with metrics:
-        st.dataframe(pd.DataFrame(rows).style.format({c: "{:.3f}" for c in pd.DataFrame(rows).columns if c not in ("Product", "AUC 95% CI")}),
+        st.dataframe(pd.DataFrame(rows).style.format({c: "{:.3f}" for c in pd.DataFrame(rows).columns if c not in ("Product", "Selected model", "AUC 95% CI")}),
                      hide_index=True, width="stretch")
-        st.markdown("<div class='risk-note'><b>Honest reading:</b> LightGBM beats the prevalence baseline, but is roughly level with the logistic-regression baseline on held-out data. The synthetic labels are generated from a mostly linear logit, so this is plausible rather than a claim of superiority.</div>",
+        st.markdown("<div class='risk-note'><b>Honest reading:</b> each product compared regularised logistic regression with LightGBM using training cross-validation only, and logistic regression was selected for all four. The selected models clearly beat the prevalence baseline and are roughly level with the fixed logistic baseline on held-out data. The synthetic labels come from a logistic generator, so linear models have a structural advantage; AUC is ranking quality, not accuracy.</div>",
                     unsafe_allow_html=True)
         st.markdown("#### Transaction categorisation")
         t = rep["txn_categorisation"]
+        t = t.get("test", t)  # held-out test split; older reports stored the metrics at the top level
         c = st.columns(4)
         c[0].metric("Model macro-F1", f"{t['model_macro_f1']:.3f}"); c[1].metric("Rules baseline F1", f"{t['rules_macro_f1']:.3f}")
         c[2].metric("Model accuracy", f"{t['model_acc']:.3f}"); c[3].metric("Rules accuracy", f"{t['rules_acc']:.3f}")

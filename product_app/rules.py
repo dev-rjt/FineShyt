@@ -1,28 +1,34 @@
-"""Rules-based product eligibility / candidate gate (NOT machine learning, NOT the LLM).
-
-Illustrative only: in production these are replaced by the institution's authorised
-product criteria. A propensity never overrides this gate (FR7)."""
+"""Suitability gates only. Financial eligibility remains institution review.
+Compatibility: eligible_* is a historical column name meaning candidate, not approval.
+Unknown critical facts fail closed. Rules never use take-up labels or propensity.
+"""
 import pandas as pd
 
-def eligibility(f: pd.DataFrame) -> pd.DataFrame:
-    """f = customer-360 feature frame. Returns one boolean + one reason column per product."""
-    out = pd.DataFrame(index=f.index)
-    def put(prod, ok, why_not):
-        out[f"eligible_{prod}"] = ok.astype(bool)
-        out[f"exclusion_{prod}"] = pd.Series("", index=f.index).mask(~ok, why_not)
-    # EV finance: owns a non-EV vehicle (replacement use case), age 18-78, doesn't already hold GP01
-    ev_owner = f.fuel_type_code == 3   # 3 = EV
-    ok = (f.has_vehicle == 1) & ~ev_owner & f.age.between(18, 78) & (f.holds_GP01 == 0)
-    why = pd.Series("NO_VEHICLE_ON_RECORD", index=f.index).mask(ev_owner, "ALREADY_EV_NO_REPLACEMENT_USE_CASE") \
-            .mask(~f.age.between(18, 78), "OUTSIDE_AGE_CRITERIA").mask(f.holds_GP01 == 1, "ALREADY_HOLDS_PRODUCT")
-    put("EV_FINANCE", ok, why)
-    # Green home loan: home owner or mortgage holder
-    ok = ((f.home_owner == 1) | (f.has_mortgage == 1)) & (f.holds_GP02 == 0)
-    put("GREEN_HOME", ok, pd.Series("NOT_HOME_OWNER", index=f.index).mask(f.holds_GP02 == 1, "ALREADY_HOLDS_PRODUCT"))
-    # Solar finance: home owner (PV installation use case)
-    ok = (f.home_owner == 1) & (f.holds_GP03 == 0)
-    put("SOLAR_FINANCE", ok, pd.Series("NOT_HOME_OWNER", index=f.index).mask(f.holds_GP03 == 1, "ALREADY_HOLDS_PRODUCT"))
-    # Paperless: still receives paper statements
-    ok = (f.paper_share > 0.15) & (f.holds_GP04 == 0)
-    put("PAPERLESS", ok, pd.Series("ALREADY_MOSTLY_DIGITAL", index=f.index).mask(f.holds_GP04 == 1, "ALREADY_HOLDS_PRODUCT"))
+def eligibility(f):
+    f=f.copy(); out=pd.DataFrame(index=f.index)
+    needed=['has_vehicle','fuel_type_code','age','home_owner','has_mortgage','paper_share']+[f'holds_GP0{i}' for i in range(1,5)]
+    for k in needed:
+        if k not in f: f[k]=float('nan')
+        f[k]=pd.to_numeric(f[k],errors='coerce')
+    def put(prod,ok,why,critical):
+        missing=f[critical].isna().any(axis=1)
+        ok=ok.fillna(False)&~missing
+        out[f'eligible_{prod}']=ok.astype(bool)
+        out[f'exclusion_{prod}']=why.mask(missing,'MISSING_SUITABILITY_DATA').mask(ok,'')
+        out[f'financial_eligibility_{prod}']='NOT_ASSESSED'
+    ok=(f.has_vehicle==1)&f.fuel_type_code.isin([0,1,2])&f.age.between(18,78)&(f.holds_GP01==0)
+    why=pd.Series('NO_VEHICLE_ON_RECORD',index=f.index).mask((f.has_vehicle==1)&~f.fuel_type_code.isin([0,1,2,3]),'UNKNOWN_VEHICLE_FUEL')
+    why=why.mask(f.fuel_type_code==3,'ALREADY_EV_NO_REPLACEMENT_USE_CASE').mask(~f.age.between(18,78),'OUTSIDE_ILLUSTRATIVE_AGE_RULE').mask(f.holds_GP01==1,'ALREADY_HOLDS_PRODUCT')
+    # No vehicle is an explicit exclusion; an existing vehicle with missing fuel is unknown.
+    f.loc[f.has_vehicle==0,'fuel_type_code']=-1
+    put('EV_FINANCE',ok,why,['has_vehicle','fuel_type_code','age','holds_GP01'])
+    ok=((f.home_owner==1)|(f.has_mortgage==1))&(f.holds_GP02==0)
+    why=pd.Series('NOT_HOME_OWNER',index=f.index).mask(f.holds_GP02==1,'ALREADY_HOLDS_PRODUCT')
+    # Ownership is known if either recorded ownership or mortgage is positive.
+    f['_home_verified']=f.home_owner.mask(f.has_mortgage==1,1)
+    put('GREEN_HOME',ok,why,['_home_verified','holds_GP02'])
+    ok=(f.home_owner==1)&(f.holds_GP03==0)
+    put('SOLAR_FINANCE',ok,pd.Series('NOT_HOME_OWNER',index=f.index).mask(f.holds_GP03==1,'ALREADY_HOLDS_PRODUCT'),['home_owner','holds_GP03'])
+    ok=(f.paper_share>.15)&(f.holds_GP04==0)
+    put('PAPERLESS',ok,pd.Series('ALREADY_MOSTLY_DIGITAL',index=f.index).mask(f.holds_GP04==1,'ALREADY_HOLDS_PRODUCT'),['paper_share','holds_GP04'])
     return out

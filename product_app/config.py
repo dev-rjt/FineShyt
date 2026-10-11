@@ -29,7 +29,7 @@ SPLIT = dict(train=0.70, val=0.15, test=0.15)
 LGB_BASE = dict(objective="binary", metric="binary_logloss", verbosity=-1,
                 feature_fraction=0.8, bagging_fraction=0.8, bagging_freq=1,
                 lambda_l2=5.0, lambda_l1=0.5, min_gain_to_split=0.0,
-                max_depth=-1, n_jobs=4)
+                max_depth=-1, n_jobs=2, deterministic=True, force_col_wise=True)
 GRID = dict(learning_rate=[0.02, 0.05], num_leaves=[4, 8, 16], min_child_samples=[20, 50])
 MAX_ROUNDS, EARLY_STOP = 3000, 100
 N_ENSEMBLE = 5   # bagged seeds -> used for confidence (agreement) score

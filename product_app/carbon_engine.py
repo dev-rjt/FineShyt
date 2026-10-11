@@ -1,205 +1,133 @@
-"""Deterministic sustainability-impact engine (FR4).
+"""Deterministic operational baseline-versus-scenario estimates.
 
-ML and LLM code is deliberately absent. Every result is an estimated 12-month
-scenario range built from versioned factors and assumptions. Missing inputs
-produce ``INSUFFICIENT_DATA`` rather than an invented value.
+Method follows comparative-assessment principles: same activity/horizon,
+explicit counterfactual, documented boundary. Not a full lifecycle assessment,
+PCAF accounting, credit issuance or claimed measured emissions reduction.
 """
-from __future__ import annotations
-
+from functools import lru_cache
 import numpy as np
 import pandas as pd
-
 from config import DATA_DIR
 
+KM_PER_MILE=1.609344
+METHOD_SOURCE='https://ghgprotocol.org/estimating-and-reporting-avoided-emissions'
+ASSUMPTIONS=dict(ev_kwh_per_km=.20,green_home_gas_reduction=.20,
+    green_home_elec_reduction=.05,solar_kwp_min=2.,solar_kwp_max=6.,
+    solar_yield_kwh_per_kwp=900.,solar_self_use_fraction=.5,paper_sheets_per_statement=3,
+    horizon='12 months',boundary='Operational emissions only; manufacturing, upstream fuel/electricity and T&D losses excluded')
 
-KM_PER_MILE = 1.609344
-HORIZON_MONTHS = 12
+def _factors():
+    path=DATA_DIR/'emissions_factors.csv'
+    return _cached_factors(str(path),path.stat().st_mtime_ns)
 
+@lru_cache(maxsize=4)
+def _cached_factors(path,mtime):
+    ef=pd.read_csv(path)
+    if ef.activity.duplicated().any(): raise ValueError('Duplicate emissions factors')
+    return ef.set_index('activity')
 
-def _references():
-    factors = pd.read_csv(DATA_DIR / "emissions_factors.csv").set_index("activity")
-    assumptions = pd.read_csv(DATA_DIR / "model_assumptions.csv").set_index("assumption_id")
-    return factors, assumptions
+def _insufficient(prod,missing,status='INSUFFICIENT_DATA'):
+    return dict(product=prod,status=status,missing_inputs=missing,is_estimate=True,horizon=ASSUMPTIONS['horizon'])
 
+def _validate(prod,r,keys):
+    missing=[]; invalid=[]
+    for k in keys:
+        try: value=float(r.get(k,np.nan))
+        except (TypeError,ValueError): value=np.nan
+        if not np.isfinite(value): missing.append(k)
+        elif value<0: invalid.append(k)
+    if missing: return _insufficient(prod,missing)
+    if invalid: return _insufficient(prod,invalid,'INVALID_DATA')
+    return None
 
-FACTORS, ASSUMPTIONS = _references()
-EF = FACTORS.kg_co2e_per_unit.to_dict()
+def _ok(prod,base,scen,method,factors,**extra):
+    rows=_factors(); evidence=[]
+    for k in factors:
+        row=rows.loc[k]
+        evidence.append(dict(activity=k,value=float(row.kg_co2e_per_unit),unit=row.unit,
+            source=row.source,source_url=row.source_url,source_row_id=row.source_row_id,source_year=int(row.source_year)))
+    return dict(product=prod,status='OK',baseline_kg_co2e=round(base,2),scenario_kg_co2e=round(scen,2),
+        avoided_kg_co2e_per_year=round(base-scen,2),horizon=ASSUMPTIONS['horizon'],method=method,
+        method_source=METHOD_SOURCE,boundary=ASSUMPTIONS['boundary'],is_estimate=True,
+        factor_evidence=evidence,financial_eligibility='NOT_ASSESSED',**extra)
 
+def ev_finance(r):
+    err=_validate('EV_FINANCE',r,['annual_mileage','fuel_type_code'])
+    if err: return err
+    fk={0:'car_petrol',1:'car_diesel',2:'car_hybrid'}.get(r['fuel_type_code'])
+    if fk is None: return _insufficient('EV_FINANCE',['supported_non_EV_fuel_type'])
+    if r.get('vehicle_type_code')==3: return _insufficient('EV_FINANCE',['passenger_car_factor_not_applicable_to_van'])
+    ef=_factors().kg_co2e_per_unit; km=float(r['annual_mileage'])*KM_PER_MILE
+    intensity=float(r.get('ev_kwh_per_km',ASSUMPTIONS['ev_kwh_per_km']))
+    if not np.isfinite(intensity) or intensity<=0: return _insufficient('EV_FINANCE',['ev_kwh_per_km'],'INVALID_DATA')
+    base=km*ef[fk]; scenario=km*intensity*ef.grid_electricity
+    return _ok('EV_FINANCE',base,scenario,'baseline = annual km x passenger-car factor; scenario = annual km x EV kWh/km x grid factor',
+        [fk,'grid_electricity'],inputs={'annual_km':km,'ev_kwh_per_km':intensity},
+        assumptions=['Replacement at equal annual mileage','EV energy intensity is a scenario assumption, not a measured value'],
+        sensitivity_avoided_kg_co2e={'ev_0_15_kwh_per_km':round(base-km*.15*ef.grid_electricity,2),
+            'ev_0_25_kwh_per_km':round(base-km*.25*ef.grid_electricity,2)})
 
-def _assumption(assumption_id: str, point: str = "central") -> float:
-    return float(ASSUMPTIONS.loc[assumption_id, point])
+def green_home(r):
+    err=_validate('GREEN_HOME',r,['gas_kwh_yr','elec_kwh_yr'])
+    if err: return err
+    ef=_factors().kg_co2e_per_unit; gas=float(r['gas_kwh_yr']); elec=float(r['elec_kwh_yr'])
+    base=gas*ef.natural_gas+elec*ef.grid_electricity
+    saved_g=gas*ASSUMPTIONS['green_home_gas_reduction']; saved_e=elec*ASSUMPTIONS['green_home_elec_reduction']
+    scen=base-saved_g*ef.natural_gas-saved_e*ef.grid_electricity
+    return _ok('GREEN_HOME',base,scen,'annual metered kWh x factors; insulation/retrofit scenario reduces gas 20% and electricity 5%',
+        ['natural_gas','grid_electricity'],energy_saved_kwh=round(saved_g+saved_e,2),
+        assumptions=['20% gas and 5% electricity reduction are scenario assumptions','Green Home maps to retrofit/insulation, not solar generation or a heat-pump model'],
+        sensitivity_avoided_kg_co2e={'gas_10pct_elec_2pct':round(gas*.1*ef.natural_gas+elec*.02*ef.grid_electricity,2),
+            'gas_30pct_elec_10pct':round(gas*.3*ef.natural_gas+elec*.1*ef.grid_electricity,2)})
 
+def solar_finance(r):
+    err=_validate('SOLAR_FINANCE',r,['elec_kwh_yr'])
+    if err: return err
+    load=float(r['elec_kwh_yr']); ef=_factors().kg_co2e_per_unit
+    if load==0: return _insufficient('SOLAR_FINANCE',['positive_electricity_demand_for_sizing'])
+    yield_=ASSUMPTIONS['solar_yield_kwh_per_kwp']; share=float(r.get('solar_self_use_fraction',ASSUMPTIONS['solar_self_use_fraction']))
+    if not np.isfinite(share) or not 0<=share<=1: return _insufficient('SOLAR_FINANCE',['solar_self_use_fraction'],'INVALID_DATA')
+    kwp=float(np.clip(load/yield_,ASSUMPTIONS['solar_kwp_min'],ASSUMPTIONS['solar_kwp_max']))
+    gen=kwp*yield_; onsite=min(load,gen*share); export=max(0,gen-onsite)
+    base=load*ef.grid_electricity; scen=(load-onsite)*ef.grid_electricity
+    return _ok('SOLAR_FINANCE',base,scen,'household avoided operational emissions = min(load, PV generation x self-use fraction) x grid factor',
+        ['grid_electricity'],system_kwp=round(kwp,2),generation_kwh=round(gen,2),
+        energy_generated_kwh=round(gen,2),grid_import_avoided_kwh=round(onsite,2),exported_kwh=round(export,2),
+        inputs={'annual_load_kwh':load,'self_use_fraction':share,'yield_kwh_per_kwp':yield_},
+        assumptions=['900 kWh/kWp/year yield and 50% self-use are illustrative UK scenario assumptions','Roof suitability, installation permissions and shading require assessment','Export benefits excluded from household savings; no negative household emissions'],
+        sensitivity_avoided_kg_co2e={'self_use_30pct':round(min(load,gen*.3)*ef.grid_electricity,2),
+            'self_use_70pct':round(min(load,gen*.7)*ef.grid_electricity,2)})
 
-def _assumption_record(assumption_id: str, value=None) -> dict:
-    row = ASSUMPTIONS.loc[assumption_id]
-    return {
-        "id": assumption_id,
-        "value": float(row.central) if value is None else value,
-        "unit": str(row.unit),
-        "source": f"{row.source} ({row.version})",
-    }
+def paperless(r):
+    err=_validate('PAPERLESS',r,['paper_share','paper_stmts_yr'])
+    if err: return err
+    if not 0<=r['paper_share']<=1: return _insufficient('PAPERLESS',['paper_share'],'INVALID_DATA')
+    return dict(product='PAPERLESS',status='OK',paper_statements_avoided=int(r['paper_stmts_yr']),
+        paper_sheets_avoided=int(r['paper_stmts_yr']*ASSUMPTIONS['paper_sheets_per_statement']),
+        digital_adoption_shift_pp=round(100*r['paper_share'],2),avoided_kg_co2e_per_year=None,
+        carbon_status='INSUFFICIENT_FACTOR',is_estimate=True,horizon=ASSUMPTIONS['horizon'],
+        method='Paper statements avoided x assumed 3 sheets/statement. No sourced statement life-cycle factor: no carbon claim.',
+        assumptions=['All observed annual paper statements switch to digital','3 A4 sheets per statement assumed'],
+        financial_eligibility='NOT_ASSESSED')
 
-
-def _factor_record(activity: str) -> dict:
-    row = FACTORS.loc[activity]
-    year = None if pd.isna(row.source_year) else int(row.source_year)
-    return {
-        "factor_id": str(row.factor_id),
-        "activity": activity,
-        "kg_co2e_per_unit": float(row.kg_co2e_per_unit),
-        "unit": str(row.unit),
-        "source": f"{row.source} ({row.factor_version})",
-        "source_year": year,
-    }
-
-
-def _metric(metric: str, unit: str, low: float, central: float, high: float) -> dict:
-    ordered = sorted([max(0.0, float(low)), max(0.0, float(central)), max(0.0, float(high))])
-    return {"metric": metric, "unit": unit, "low": round(ordered[0], 2),
-            "central": round(ordered[1], 2), "high": round(ordered[2], 2)}
-
-
-def _insufficient(product: str, missing: list[str], method: str) -> dict:
-    return {
-        "product": product,
-        "status": "INSUFFICIENT_DATA",
-        "is_estimate": True,
-        "horizon_months": HORIZON_MONTHS,
-        "horizon": "12 months",
-        "method": method,
-        "metrics": [],
-        "assumptions": [],
-        "factors": [],
-        "missing_inputs": missing,
-    }
-
-
-def _ok(product: str, baseline: float, scenario: float, method: str, metric: dict,
-        assumptions: list[dict], factors: list[dict], extra_metrics: list[dict] | None = None, **extra) -> dict:
-    return {
-        "product": product,
-        "status": "OK",
-        "is_estimate": True,
-        "horizon_months": HORIZON_MONTHS,
-        "horizon": "12 months",
-        "method": method,
-        "metrics": [metric, *(extra_metrics or [])],
-        "assumptions": assumptions,
-        "factors": factors,
-        "missing_inputs": [],
-        "baseline_kg_co2e": round(float(baseline), 1),
-        "scenario_kg_co2e": round(float(scenario), 1),
-        "avoided_kg_co2e_per_year": metric["central"] if metric["metric"] == "CO2E_KG" else round(float(baseline - scenario), 2),
-        "estimate_low": metric["low"],
-        "estimate_central": metric["central"],
-        "estimate_high": metric["high"],
-        **extra,
-    }
-
-
-def ev_finance(row) -> dict:
-    method = "EV_AVOIDED_V1: current vehicle emissions minus estimated EV electricity emissions"
-    missing = [key for key in ["annual_mileage", "fuel_type_code"] if pd.isna(row.get(key))]
-    if missing:
-        return _insufficient("EV_FINANCE", missing, method)
-    annual_km = float(row["annual_mileage"]) * KM_PER_MILE
-    factor_key = {0: "car_petrol", 1: "car_diesel", 2: "car_hybrid"}.get(int(row["fuel_type_code"]))
-    if factor_key is None:
-        return _insufficient("EV_FINANCE", ["non_EV_vehicle"], method)
-    baseline = annual_km * EF[factor_key]
-    grid = EF["grid_electricity"]
-    scenario_central = annual_km * _assumption("A_EV_KWH_PER_KM") * grid
-    low = baseline - annual_km * _assumption("A_EV_KWH_PER_KM", "high") * grid
-    high = baseline - annual_km * _assumption("A_EV_KWH_PER_KM", "low") * grid
-    metric = _metric("CO2E_KG", "kg CO2e per year", low, baseline - scenario_central, high)
-    return _ok(
-        "EV_FINANCE", baseline, scenario_central, method, metric,
-        [_assumption_record("A_EV_KWH_PER_KM"),
-         {"id": "A_MILEAGE_UNCHANGED", "value": True, "unit": None, "source": "Documented scenario boundary"},
-         {"id": "A_MANUFACTURING_EXCLUDED", "value": True, "unit": None, "source": "Documented scenario boundary"}],
-        [_factor_record(factor_key), _factor_record("grid_electricity")],
-        inputs={"annual_km": round(annual_km), "factor_baseline": EF[factor_key], "grid_factor": grid},
-    )
-
-
-def green_home(row) -> dict:
-    method = "HOME_EFFICIENCY_V1: metered energy baseline minus modelled retrofit scenario"
-    missing = [key for key in ["gas_kwh_yr", "elec_kwh_yr"] if pd.isna(row.get(key))]
-    if missing:
-        return _insufficient("GREEN_HOME", missing, method)
-    gas, electricity = float(row["gas_kwh_yr"]), float(row["elec_kwh_yr"])
-    baseline = gas * EF["natural_gas"] + electricity * EF["grid_electricity"]
-
-    def avoided(point: str) -> float:
-        return gas * _assumption("A_GREEN_HOME_GAS_REDUCTION", point) * EF["natural_gas"] + \
-            electricity * _assumption("A_GREEN_HOME_ELECTRICITY_REDUCTION", point) * EF["grid_electricity"]
-
-    low, central, high = avoided("low"), avoided("central"), avoided("high")
-    energy_central = gas * _assumption("A_GREEN_HOME_GAS_REDUCTION") + electricity * _assumption("A_GREEN_HOME_ELECTRICITY_REDUCTION")
-    energy_low = gas * _assumption("A_GREEN_HOME_GAS_REDUCTION", "low") + electricity * _assumption("A_GREEN_HOME_ELECTRICITY_REDUCTION", "low")
-    energy_high = gas * _assumption("A_GREEN_HOME_GAS_REDUCTION", "high") + electricity * _assumption("A_GREEN_HOME_ELECTRICITY_REDUCTION", "high")
-    metric = _metric("CO2E_KG", "kg CO2e per year", low, central, high)
-    return _ok(
-        "GREEN_HOME", baseline, baseline - central, method, metric,
-        [_assumption_record("A_GREEN_HOME_GAS_REDUCTION"), _assumption_record("A_GREEN_HOME_ELECTRICITY_REDUCTION")],
-        [_factor_record("natural_gas"), _factor_record("grid_electricity")],
-        extra_metrics=[_metric("ENERGY_KWH", "kWh per year", energy_low, energy_central, energy_high)],
-        energy_saved_kwh=round(energy_central),
-    )
-
-
-def solar_finance(row) -> dict:
-    method = "SOLAR_GENERATION_V1: modelled solar generation displaces grid electricity up to annual use"
-    if pd.isna(row.get("elec_kwh_yr")):
-        return _insufficient("SOLAR_FINANCE", ["elec_kwh_yr"], method)
-    annual_use = float(row["elec_kwh_yr"])
-    central_yield = _assumption("A_SOLAR_YIELD")
-    system_kwp = float(np.clip(annual_use / central_yield, _assumption("A_SOLAR_MIN_SYSTEM"), _assumption("A_SOLAR_MAX_SYSTEM")))
-
-    def generation(point: str) -> float:
-        return min(annual_use, system_kwp * _assumption("A_SOLAR_YIELD", point))
-
-    generated_low, generated_central, generated_high = generation("low"), generation("central"), generation("high")
-    baseline = annual_use * EF["grid_electricity"]
-    avoided = [generated_low * EF["grid_electricity"], generated_central * EF["grid_electricity"], generated_high * EF["grid_electricity"]]
-    metric = _metric("CO2E_KG", "kg CO2e per year", *avoided)
-    return _ok(
-        "SOLAR_FINANCE", baseline, baseline - avoided[1], method, metric,
-        [_assumption_record("A_SOLAR_YIELD"), _assumption_record("A_SOLAR_MIN_SYSTEM"), _assumption_record("A_SOLAR_MAX_SYSTEM"),
-         {"id": "A_GRID_DISPLACEMENT", "value": True, "unit": None, "source": "Documented scenario boundary"}],
-        [_factor_record("grid_electricity")],
-        extra_metrics=[_metric("ENERGY_KWH", "kWh per year", generated_low, generated_central, generated_high)],
-        system_kwp=round(system_kwp, 1), generation_kwh=round(generated_central), energy_generated_kwh=round(generated_central),
-    )
-
-
-def paperless(row) -> dict:
-    method = "PAPER_AVOIDED_V1: paper statements moved to digital using a documented lifecycle range"
-    missing = [key for key in ["paper_share", "paper_stmts_yr"] if pd.isna(row.get(key))]
-    if missing:
-        return _insufficient("PAPERLESS", missing, method)
-    statements = float(row["paper_stmts_yr"])
-    low = statements * _assumption("A_PAPER_KG_CO2E_PER_STATEMENT", "low")
-    central = statements * _assumption("A_PAPER_KG_CO2E_PER_STATEMENT")
-    high = statements * _assumption("A_PAPER_KG_CO2E_PER_STATEMENT", "high")
-    sheets = int(statements * _assumption("A_PAPER_SHEETS_PER_STATEMENT"))
-    metric = _metric("CO2E_KG", "kg CO2e per year", low, central, high)
-    result = _ok(
-        "PAPERLESS", central, 0, method, metric,
-        [_assumption_record("A_PAPER_KG_CO2E_PER_STATEMENT"), _assumption_record("A_PAPER_SHEETS_PER_STATEMENT")],
-        [_factor_record("paper_statement")],
-        extra_metrics=[_metric("PAPER_SHEETS", "sheets per year", sheets, sheets, sheets),
-                       _metric("DIGITAL_ADOPTION_PP", "percentage points", 100 * float(row["paper_share"]),
-                               100 * float(row["paper_share"]), 100 * float(row["paper_share"]))],
-        paper_statements_avoided=int(statements), paper_sheets_avoided=sheets,
-        digital_adoption_shift_pp=round(100 * float(row["paper_share"]), 1),
-    )
-    result["avoided_kg_co2e_per_year"] = round(central, 2)
-    return result
-
-
-ENGINE = {"EV_FINANCE": ev_finance, "GREEN_HOME": green_home, "SOLAR_FINANCE": solar_finance, "PAPERLESS": paperless}
-
-
-def estimate_impact(product: str, row) -> dict:
+ENGINE=dict(EV_FINANCE=ev_finance,GREEN_HOME=green_home,SOLAR_FINANCE=solar_finance,PAPERLESS=paperless)
+def estimate_impact(product,row):
+    if product not in ENGINE: raise ValueError('Unknown opportunity')
+    if product != 'PAPERLESS':
+        keys=['grid_electricity']
+        if product=='GREEN_HOME': keys.append('natural_gas')
+        if product=='EV_FINANCE':
+            fk={0:'car_petrol',1:'car_diesel',2:'car_hybrid'}.get(row.get('fuel_type_code'))
+            if fk: keys.append(fk)
+        try: factors=_factors()
+        except (FileNotFoundError,KeyError): return _insufficient(product,['documented_emissions_factors'],'INSUFFICIENT_FACTOR')
+        required=['kg_co2e_per_unit','unit','source','source_url','source_row_id','source_year']
+        if not all(k in factors for k in required): return _insufficient(product,['factor_metadata'],'INSUFFICIENT_FACTOR')
+        bad=[k for k in keys if k not in factors.index]
+        if bad: return _insufficient(product,['factor:'+k for k in bad],'INSUFFICIENT_FACTOR')
+        for k in keys:
+            value=pd.to_numeric(factors.loc[k,'kg_co2e_per_unit'],errors='coerce')
+            expected_unit='km' if k.startswith('car_') else 'kWh'
+            if not np.isfinite(value) or value<0 or factors.loc[k,'unit']!=expected_unit:
+                return _insufficient(product,['factor:'+k],'INVALID_FACTOR')
     return ENGINE[product](row)

@@ -1,9 +1,6 @@
-activity,unit,kg_co2e_per_unit,source,factor_id,source_year,factor_version
-grid_electricity,kWh,0.207,UK DESNZ/DEFRA GHG conversion factors (~2023/24 grid avg) - VERIFY latest,EF_UK_GRID,2024,prototype-1
-natural_gas,kWh,0.183,UK DESNZ/DEFRA GHG conversion factors (gross CV) - VERIFY latest,EF_UK_NATURAL_GAS,2024,prototype-1
-car_petrol,km,0.17,"UK DESNZ avg petrol car, approx - VERIFY latest",EF_UK_CAR_PETROL,2024,prototype-1
-car_diesel,km,0.171,"UK DESNZ avg diesel car, approx - VERIFY latest",EF_UK_CAR_DIESEL,2024,prototype-1
-car_hybrid,km,0.12,"UK DESNZ hybrid car, approx - VERIFY latest",EF_UK_CAR_HYBRID,2024,prototype-1
-ev_energy_intensity,kWh/km,0.2,Documented hackathon prototype EV energy-intensity assumption,A_EV_KWH_PER_KM,2026,prototype-1
-paper_statement,statement,0.025,Documented hackathon prototype paper-statement lifecycle assumption,A_PAPER_KG_CO2E,2026,prototype-1
-pv_yield,kWh/kWp/yr,900.0,Documented hackathon prototype UK PV-yield assumption,A_SOLAR_YIELD,2026,prototype-1
+activity,unit,kg_co2e_per_unit,source,source_url,source_row_id,source_year,description,verified,boundary,factor_id,factor_version
+grid_electricity,kWh,0.177,DESNZ 2025 flat file,https://www.gov.uk/government/publications/greenhouse-gas-reporting-conversion-factors-2025,7_400_4000_5_1,2025,"Electricity generated, UK",True,Operational combustion/generation only; upstream and manufacturing excluded,EF_UK_GRID,DESNZ-2025
+natural_gas,kWh,0.18296,DESNZ 2025 flat file,https://www.gov.uk/government/publications/greenhouse-gas-reporting-conversion-factors-2025,1_100_1004_6_1,2025,"Natural gas, gross calorific value",True,Operational combustion/generation only; upstream and manufacturing excluded,EF_UK_NATURAL_GAS,DESNZ-2025
+car_petrol,km,0.16272,DESNZ 2025 flat file,https://www.gov.uk/government/publications/greenhouse-gas-reporting-conversion-factors-2025,4_301_3070_4_1,2025,Average petrol passenger car,True,Operational combustion/generation only; upstream and manufacturing excluded,EF_UK_CAR_PETROL,DESNZ-2025
+car_diesel,km,0.17304,DESNZ 2025 flat file,https://www.gov.uk/government/publications/greenhouse-gas-reporting-conversion-factors-2025,4_301_3069_4_1,2025,Average diesel passenger car,True,Operational combustion/generation only; upstream and manufacturing excluded,EF_UK_CAR_DIESEL,DESNZ-2025
+car_hybrid,km,0.12825,DESNZ 2025 flat file,https://www.gov.uk/government/publications/greenhouse-gas-reporting-conversion-factors-2025,4_301_3071_4_1,2025,Average non-plug-in hybrid passenger car,True,Operational combustion/generation only; upstream and manufacturing excluded,EF_UK_CAR_HYBRID,DESNZ-2025

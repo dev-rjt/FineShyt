@@ -1,4 +1,4 @@
-.PHONY: setup database impacts test run verify
+.PHONY: setup train database impacts test run verify
 
 PYTHON := product_app/.venv/bin/python
 
@@ -6,6 +6,11 @@ setup:
 	test -x product_app/.venv/bin/python || python3 -m venv product_app/.venv
 	$(PYTHON) -m pip install --upgrade pip
 	$(PYTHON) -m pip install -r requirements.txt -r product_app/requirements-app.txt -r requirements-rai.txt
+
+# Retrain all models (seeded), then reshape outputs for the API and rebuild the database.
+train:
+	cd product_app && .venv/bin/python run_pipeline.py
+	$(MAKE) impacts database
 
 impacts:
 	$(PYTHON) product_app/rebuild_impacts.py

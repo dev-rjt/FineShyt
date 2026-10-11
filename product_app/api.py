@@ -25,7 +25,7 @@ from api_service import (
     score_snapshot,
 )
 from auth import Principal, authenticate, credentials_ready, load_local_env
-from carbon_engine import estimate_impact
+from contract_adapter import contract_impact as estimate_impact
 from config import PRODUCT_IDS
 from txn_classifier import rule_classify
 
@@ -305,7 +305,7 @@ def get_evaluation(_: dict = Depends(require_bank)):
     report = repository()["evaluation"]
     return {"items": [{"component": product, "split": "test", "metrics": values["test"],
                         "baseline": values["baseline_logreg_test"]}
-                       for product, values in report.items() if isinstance(values, dict) and "test" in values]}
+                       for product, values in report.items() if product in PRODUCT_IDS]}
 
 
 @app.get("/business/summary")

@@ -103,6 +103,19 @@ class InsightLayerTests(unittest.TestCase):
         _, _, post = self.explain_with(ESTIMATE_PAYLOAD, GOOD_ESTIMATE, timeout=20)
         self.assertEqual(post.call_args.kwargs["timeout"], 20)
 
+    def test_paperless_without_carbon_factor_reports_paper_only(self):
+        payload = {**PAYLOAD, "product": "Paperless Banking", "product_id": "GP04", "impact_status": "OK",
+                   "paper_statements_avoided": 23, "paper_sheets_avoided": 69, "avoided_kg_co2e_per_year": None,
+                   "action": "Go paperless"}
+        self.assertEqual(llm_facts(payload)["impact_status"], "PAPER_ONLY")
+        good = "Paperless Banking may suit you. Switching could avoid about 23 paper statements (and 69 sheets) a year."
+        text, source, _ = self.explain_with(payload, good)
+        self.assertEqual(source, "llm")
+        self.assertIn("subject to eligibility checks", text)
+        insight_layer._EXPLANATION_CACHE.clear()
+        _, source, _ = self.explain_with(payload, good + " That avoids a little carbon too.")
+        self.assertEqual(source, "template (llm rejected: carbon claim without a sourced factor)")
+
     def test_suppressed_payload_never_reaches_llm(self):
         with patch.dict(os.environ, self.CLOUD_ENV, clear=True), patch("insight_layer.requests.post") as post:
             _, source = explain({**ESTIMATE_PAYLOAD, "recommended": False})
