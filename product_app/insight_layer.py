@@ -4,9 +4,14 @@ The LLM ONLY rewrites a structured payload into plain language. It never predict
 or decides eligibility. Every generated text is checked: any number in the text must exist in the payload,
 otherwise we fall back to a deterministic template (so the UI never shows an ungrounded figure).
 
-Set ANTHROPIC_API_KEY to enable the LLM; without it the template explainer is used (same payload, same facts).
+Set OLLAMA_API_KEY for Ollama Cloud, or point OLLAMA_BASE_URL at a local Ollama
+server. Without a usable Ollama configuration the same facts are rendered by the
+deterministic template.
 """
-import json, os, re
+import json, math, os, re
+from urllib.parse import urlsplit
+
+import requests
 
 REASON_TEXT = {
     "HIGH_FUEL_SPEND": "your monthly fuel spend is high", "HIGH_ANNUAL_MILEAGE": "you drive a lot each year",
@@ -93,6 +98,75 @@ SYSTEM = ("You rewrite a JSON object into 2-4 friendly sentences for a bank cust
           "Do not invent figures, do not calculate, do not promise approval or eligibility. Say carbon figures are estimates. "
           "If impact_status is INSUFFICIENT_DATA say so plainly. Mention the data_as_of date. End with the action.")
 
+DEFAULT_OLLAMA_MODEL = "gemma4:31b"
+DEFAULT_OLLAMA_BASE_URL = "https://ollama.com"
+
+
+def _enabled(value: str | None) -> bool:
+    return str(value or "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _ollama_config() -> tuple[str, str, str | None, float]:
+    """Return a validated Ollama origin, model, optional key and timeout."""
+    base_url = os.getenv("OLLAMA_BASE_URL", DEFAULT_OLLAMA_BASE_URL).strip().rstrip("/")
+    model = os.getenv("OLLAMA_MODEL", DEFAULT_OLLAMA_MODEL).strip()
+    api_key = os.getenv("OLLAMA_API_KEY", "").strip() or None
+    parsed = urlsplit(base_url)
+    loopback = parsed.hostname in {"localhost", "127.0.0.1", "::1"}
+    cloud = parsed.scheme == "https" and parsed.hostname == "ollama.com"
+    lan = _enabled(os.getenv("OLLAMA_ALLOW_LAN"))
+    clean_origin = (not parsed.username and not parsed.password and parsed.path in {"", "/"}
+                    and not parsed.query and not parsed.fragment)
+    if not clean_origin or not ((parsed.scheme == "http" and loopback)
+                                or cloud or (lan and parsed.scheme in {"http", "https"})):
+        raise ValueError("OLLAMA_BASE_URL is not an allowed Ollama origin")
+    if cloud and not api_key:
+        raise ValueError("OLLAMA_API_KEY is required for Ollama Cloud")
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}", model):
+        raise ValueError("OLLAMA_MODEL is invalid")
+    timeout = float(os.getenv("OLLAMA_TIMEOUT_SECONDS", "90"))
+    if not math.isfinite(timeout) or not 1 <= timeout <= 300:
+        raise ValueError("OLLAMA_TIMEOUT_SECONDS must be between 1 and 300")
+    return base_url, model, api_key, timeout
+
+
+def ollama_configured() -> bool:
+    try:
+        _ollama_config()
+        return True
+    except (TypeError, ValueError):
+        return False
+
+
+def _ollama_explain(p: dict) -> str:
+    base_url, model, api_key, timeout = _ollama_config()
+    headers = {"Content-Type": "application/json"}
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
+    response = requests.post(
+        f"{base_url}/api/chat",
+        headers=headers,
+        json={
+            "model": model,
+            "messages": [
+                {"role": "system", "content": SYSTEM},
+                {"role": "user", "content": json.dumps(p, default=str)},
+            ],
+            "stream": False,
+            "options": {"temperature": 0, "seed": 2026, "num_predict": 300},
+        },
+        timeout=timeout,
+        allow_redirects=False,
+    )
+    response.raise_for_status()
+    result = response.json()
+    if result.get("done") is not True or result.get("done_reason") not in {None, "stop"}:
+        raise ValueError("Ollama returned an incomplete response")
+    text = result.get("message", {}).get("content")
+    if not isinstance(text, str) or not text.strip():
+        raise ValueError("Ollama returned no message")
+    return text.strip()
+
 
 def _numbers(text):
     return {n.replace(",", "") for n in re.findall(r"\d[\d,]*\.?\d*", text)}
@@ -110,15 +184,10 @@ def is_grounded(text: str, p: dict) -> bool:
 
 def explain(p: dict, use_llm: bool = True):
     """Returns (text, source) where source in {'llm','template','template (llm rejected)'}"""
-    key = os.getenv("ANTHROPIC_API_KEY")
-    if not (use_llm and key and p["recommended"]):
+    if not (use_llm and p["recommended"] and ollama_configured()):
         return template_explain(p), "template"
     try:
-        import anthropic
-        msg = anthropic.Anthropic(api_key=key).messages.create(
-            model=os.getenv("ANTHROPIC_MODEL", "claude-sonnet-5-5"), max_tokens=300, temperature=0, system=SYSTEM,
-            messages=[{"role": "user", "content": json.dumps(p, default=str)}])
-        text = msg.content[0].text.strip()
+        text = _ollama_explain(p)
         return (text, "llm") if is_grounded(text, p) else (template_explain(p), "template (llm rejected: ungrounded number)")
     except Exception as e:  # network / auth / quota -> never break the UI
         return template_explain(p), f"template (llm error: {type(e).__name__})"

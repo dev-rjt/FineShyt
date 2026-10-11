@@ -23,3 +23,11 @@ services:
         value: http://127.0.0.1:8000
       - key: API_PORT
         value: 8000
+      - key: OLLAMA_API_KEY
+        sync: false
+      - key: OLLAMA_BASE_URL
+        value: https://ollama.com
+      - key: OLLAMA_MODEL
+        value: gemma4:31b
+      - key: OLLAMA_ALLOW_LAN
+        value: false

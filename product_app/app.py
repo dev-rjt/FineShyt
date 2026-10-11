@@ -7,7 +7,7 @@ from auth import Principal, credentials_ready, load_local_env
 load_local_env(Path(__file__).with_name(".env"))
 
 from config import PRODUCTS, CUTOFF_DATE, OUTCOME_WINDOW_MONTHS
-from insight_layer import build_payload, explain, reason_phrases, EXCLUSION_TEXT, PRODUCT_NAME, ACTION
+from insight_layer import build_payload, explain, ollama_configured, reason_phrases, EXCLUSION_TEXT, PRODUCT_NAME, ACTION
 
 API_BASE_URL = os.getenv("API_BASE_URL", "http://127.0.0.1:8000").rstrip("/")
 
@@ -307,7 +307,7 @@ if "page" not in st.session_state or st.session_state.page not in pages:
 page = st.sidebar.radio("Workspace", pages, key="page", label_visibility="collapsed")
 st.sidebar.markdown("---")
 f_region, f_income, f_split, f_prod = [], [], "all", PRODUCTS
-use_llm = bool(os.getenv("ANTHROPIC_API_KEY"))
+use_llm = ollama_configured()
 if page == "Executive overview":
     st.sidebar.markdown("#### Portfolio filters")
     f_region = st.sidebar.multiselect("Region", sorted(C.region.dropna().unique()), placeholder="All regions")

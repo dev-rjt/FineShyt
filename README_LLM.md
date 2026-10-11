@@ -2,8 +2,9 @@
 
 This implements the explanation layer in the Lloyds PS1 proposal: customer
 insights and bank-staff/relationship-manager explanations from the final v1
-opportunity contract. It connects to local Ollama and runs without an API key.
-Template mode works without Ollama. Python 3.11+ is supported; tests use 3.12.
+opportunity contract. It connects to local Ollama without an API key or to
+Ollama Cloud with bearer authentication. Template mode works without Ollama.
+Python 3.11+ is supported; tests use 3.12.
 
 ## Run without a model
 
@@ -59,12 +60,24 @@ fallbacks are successful delivery. Summary output contains counts, not customer
 records. Missing `OLLAMA_MODEL` is a configuration error. A configured model that
 is unavailable, times out, or returns invalid output triggers a fallback.
 
-Only loopback HTTP origins are supported. The transport bypasses environment
-proxies, disallows redirects, and uses a single bounded request. It never uses
-Ollama Cloud. Requests use `/api/chat`, `stream: false`, a JSON Schema `format`,
+Loopback HTTP and the official `https://ollama.com` cloud origin are supported.
+Set `OLLAMA_API_KEY` when using the cloud origin; it is sent only in the bearer
+authorization header. `OLLAMA_ALLOW_LAN=true` explicitly enables a custom
+private endpoint. The transport bypasses environment proxies for loopback,
+disallows redirects, and uses a single bounded request. Requests use `/api/chat`,
+`stream: false`, a JSON Schema `format`,
 temperature zero, seed 2026 and an 8192-token context. The schema integration
 follows [Ollama structured outputs](https://docs.ollama.com/capabilities/structured-outputs)
 and the [chat API](https://docs.ollama.com/api/chat).
+
+For Ollama Cloud:
+
+```bash
+export OLLAMA_API_KEY=your_private_key
+export OLLAMA_BASE_URL=https://ollama.com
+export OLLAMA_MODEL=gemma4:31b
+export OLLAMA_ALLOW_LAN=false
+```
 
 ## Grounding and audience handling
 

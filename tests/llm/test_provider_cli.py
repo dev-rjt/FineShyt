@@ -11,7 +11,7 @@ from src.llm.providers import OllamaProvider, ProviderError
 from src.llm.verifier import strict_json_loads
 
 
-@pytest.mark.parametrize("url", ["https://api.example.com", "http://127.0.0.1:11434/path",
+@pytest.mark.parametrize("url", ["https://api.example.com", "https://ollama.com/path", "http://127.0.0.1:11434/path",
                                 "http://user:password@localhost", "http://localhost?token=secret"])
 def test_provider_rejects_nonlocal_or_ambiguous_origins(url):
     with pytest.raises(ValueError):
@@ -49,6 +49,21 @@ def test_local_chat_request_uses_structured_schema(monkeypatch):
     assert request.full_url == "http://127.0.0.1:11434/api/chat"
     assert body["stream"] is False and body["format"] == schema
     assert body["options"]["temperature"] == 0 and timeout == 90
+
+
+def test_cloud_chat_request_uses_bearer_key(monkeypatch):
+    plan = {"headline_variant": None, "customer": [], "manager": []}
+    calls = mock_response(monkeypatch, {"done": True, "message": {"content": json.dumps(plan)}})
+    provider = OllamaProvider("gemma4:31b", "https://ollama.com", api_key="private-key")
+    assert provider.generate([], {"type": "object"}) == plan
+    request, _ = calls[0]
+    assert request.full_url == "https://ollama.com/api/chat"
+    assert request.get_header("Authorization") == "Bearer private-key"
+
+
+def test_cloud_chat_requires_key():
+    with pytest.raises(ValueError):
+        OllamaProvider("gemma4:31b", "https://ollama.com")
 
 
 @pytest.mark.parametrize("envelope", [

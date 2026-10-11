@@ -6,6 +6,16 @@ import unittest
 from fastapi import HTTPException
 from jsonschema import Draft202012Validator, FormatChecker
 
+TEST_ENV = {
+    "BANK_DEMO_ID": "bank_manager",
+    "BANK_DEMO_PASSWORD": "bank-test-password",
+    "CUSTOMER_DEMO_ID": "C12558",
+    "CUSTOMER_DEMO_PASSWORD": "customer-test-password",
+    "APP_SESSION_SECRET": "test-session-secret-with-more-than-24-chars",
+}
+for key, value in TEST_ENV.items():
+    os.environ.setdefault(key, value)
+
 from api import LoginRequest, get_customer, get_customer_audit, get_feature_weights, get_opportunities, health, login, require_bank
 from api_service import score_snapshot
 

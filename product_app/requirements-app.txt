@@ -1,6 +1,5 @@
 streamlit>=1.40
 plotly>=5.20
-anthropic>=0.40
 fastapi>=0.115
 uvicorn>=0.30
 requests>=2.31

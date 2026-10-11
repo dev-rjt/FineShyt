@@ -63,3 +63,11 @@ The redesigned prototype follows the challenge's complete decision path:
 - **Risk & controls** — responsibility boundaries, grounded-generation controls, scenario handling and honest limitations.
 
 `app.py` contains the experience. `insight_layer.py` constrains the LLM to a structured payload and rejects ungrounded numbers. `carbon_engine.py` owns all impact calculations.
+
+## Optional Ollama wording
+
+The app works without an LLM by using verified deterministic wording. To use
+Ollama Cloud, add `OLLAMA_API_KEY`, `OLLAMA_BASE_URL=https://ollama.com`, and an
+`OLLAMA_MODEL` to the git-ignored `.env` file. The supplied example defaults to
+`gemma4:31b`. Local Ollama remains supported with a loopback base URL such as
+`http://127.0.0.1:11434`; local requests do not need an API key.

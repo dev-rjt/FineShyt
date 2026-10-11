@@ -23,7 +23,7 @@ opportunity payload; it never receives raw transactions, names or postcodes.
 Every recommendation exposes confidence, fixed reason codes, evidence wording,
 data timestamp, method and assumptions. Generated text is checked so every
 number must already exist in the structured payload. A failed check, network
-failure or missing API key uses the deterministic template.
+failure or missing Ollama Cloud API key uses the deterministic template.
 
 ## Bias and model risk
 

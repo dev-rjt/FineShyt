@@ -25,6 +25,11 @@ catalogues, evaluation and business summaries, pure impact estimation,
 transaction categorisation, and non-persisted ad-hoc scenario scoring. Runtime
 Opportunity objects are validated against `contracts/opportunity_v1.schema.json`.
 
+The versioned CSV files are reproducible source, training and scored artifacts.
+At startup they are loaded into the normalized SQLite database at
+`db/verdant_demo.sqlite3`; FastAPI reads that SQL database and Streamlit reads
+only authenticated API responses. PostgreSQL is not required by the final demo.
+
 ## Host the demo
 
 The repository includes a Render Blueprint in `render.yaml`. It installs the
@@ -48,7 +53,7 @@ two passwords in the Render environment before using the URL beyond judging.
 | `src/engine/` | Deterministic product gate and impact calculations |
 | `responsible_ai/` | Privacy, leakage, bias, schema, scenario and audit controls |
 | `src/api/` | Original API contract implementation and integration reference |
-| `src/llm/` | Grounded local LLM explanations, fact extraction and output verification |
+| `src/llm/` | Grounded Ollama explanations, fact extraction and output verification |
 | `db/` | Executable SQLite schema, database builder, foreign keys, indexes and portfolio view |
 | `product_app/` | Final authenticated FastAPI + business/customer Streamlit product |
 | `integrations/engine_reference/` | Clean source imported from the independent engine branch |
@@ -74,5 +79,5 @@ not eligibility. Sustainability figures are estimates from deterministic rules.
 ## Component documentation
 
 - [Responsible AI controls and run instructions](README_RAI.md)
-- [Customer and bank-staff LLM explanations with local Ollama](README_LLM.md)
+- [Customer and bank-staff LLM explanations with local or cloud Ollama](README_LLM.md)
 - [Final problem-statement and contract gap audit](docs/submission-gap-audit.md)

@@ -1,5 +1,5 @@
 numpy==2.2.6
-pandas==2.2.3
+pandas==3.0.6
 pydantic==2.10.6
 pydantic_core==2.27.2
 annotated-types==0.7.0
