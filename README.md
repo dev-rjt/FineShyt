@@ -9,3 +9,8 @@ Documentation for the Lloyds Megathon problem statement and the team's proposed 
 3. [Final shared JSON integration contract](docs/03-final-json-contract.pdf)
 
 The official problem statement remains the source of truth. The team guide explains the solution in simpler terms, while the JSON contract defines the interface all implementation components should follow.
+
+## Components
+
+- [Responsible AI controls and run instructions](README_RAI.md)
+- [Customer and bank-staff LLM explanations with local Ollama](README_LLM.md)

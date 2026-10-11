@@ -34,3 +34,6 @@ outputs/
 .identity-*
 .env.*
 .venv-rai/
+
+# Generated explanation records and evaluation reports
+data/reports/llm/
